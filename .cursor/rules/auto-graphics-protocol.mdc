@@ -1,0 +1,70 @@
+---
+description: Auto Graphics /video and /carousel script protocol
+alwaysApply: true
+---
+
+# Auto Graphics content scripts
+
+When writing TikTok video or carousel scripts for this project, follow `docs/message-protocol.md`.
+
+## Hard rules
+
+1. First line: `/video` or `/carousel`
+2. Body tags are `kind/category` only: `[photos/...]` or `[videos/...]`
+3. Categories: `lifestyle`, `broll`, `coding`, `projects` (plus `thumbnails` for carousel cover)
+4. Dual text: `headline | subline`
+5. Same-slide line breaks: write `\n` inside text (one script line still = one slide)
+
+### /video
+
+- Optional: `hook: text | subline` — **no** library tag
+- Body lines: `[videos/category]`
+
+```text
+/video
+hook: 4 weeks recap | of my journey
+I filmed my real desk for 30 days [videos/lifestyle]
+Follow for the tools I used [videos/broll]
+```
+
+### /carousel
+
+- Required: `thumbnail: text | subline` — **no** library tag (slide 1 from `photos/thumbnails/`)
+- Body lines: `[photos/category]` only — never `[videos/...]`
+
+```text
+/carousel
+thumbnail: 4 weeks recap | of my journey
+Desk setup that actually works [photos/lifestyle]
+Tools I used every day [photos/projects]
+```
+
+## Tag matching
+
+- `coding` — desk, laptop, learning
+- `projects` — GitHub, demos, portfolio
+- `lifestyle` — life/journey soft beats only
+- `broll` — general / no clear desk or project shot
+
+## Outdated (never use)
+
+- Flat tags: `[broll]`, `[hooks]`, `[lifestyle]`, `[coding]`, `[projects]`
+- `hook:` on carousels
+- Library tags on `hook:` or `thumbnail:` lines
+
+## Content style
+
+When writing educational / tip carousels or videos for this project, also follow `docs/content-style.md` and the project skill `.cursor/skills/auto-graphics-content/SKILL.md`.
+
+- Beginner-clear, not over-technical
+- Default how-to shape: outcome hook + numbered steps (`Step 1`, `Step 2`, …)
+- Brief headers; put the explanation in the subline
+- Use `\n` for same-slide breaks when it helps reading
+- Pain-point tips (jobs, AI updates, platforms, free resources)
+- Name only large trusted orgs (e.g. Hugging Face, CS50, Google, OpenAI) — not individual creators
+- No Unicode arrows / fancy symbols on slides (`→` breaks fonts) — use `Learn, build, repeat` or `A to B`
+- If the user only has one library category stocked, tag all body lines with that category
+- Do not apply external Jake TikTok journey skills unless the user asks
+
+When the protocol changes, update `docs/message-protocol.md` first, then this rule.  
+When content voice, how-to structure, resource-naming, or on-slide font rules change, update `docs/content-style.md` and the project skill first, then this rule.

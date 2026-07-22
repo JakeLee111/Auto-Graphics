@@ -1,0 +1,8 @@
+/video
+hook: How to get a remote\nAI SWE job | in 6 steps
+Step 1: Build proof | Finish 2 to 3 small\nprojects you can demo [videos/lifestyle]
+Step 2: Show AI skills | RAG, APIs, or fine-tuning\non Hugging Face or Google Colab [videos/lifestyle]
+Step 3: Clean up GitHub | Clear README, live demo,\nshort walkthrough [videos/lifestyle]
+Step 4: Apply smart | Careers pages and official boards\nover mass Easy Apply [videos/lifestyle]
+Step 5: Write like a teammate | Impact + tools.\nWhy this team, not why you need a job [videos/lifestyle]
+Step 6: Prep interviews | System design basics,\n1 AI project story, how you debug [videos/lifestyle]
