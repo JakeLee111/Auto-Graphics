@@ -1,0 +1,8 @@
+/video
+hook: How to get a remote\nAI SWE job | 6 reply tips
+Step 1: Filter real roles | Remote or async.\nSkip posts with no salary or stack [videos/lifestyle]
+Step 2: Tailor fast | Mirror their stack words.\nLink one matching project [videos/lifestyle]
+Step 3: Cold outreach | Short note: what you built\n+ one relevant result [videos/lifestyle]
+Step 4: Signal remote-ready | Clear English, timezone overlap,\nasync updates, quiet setup [videos/lifestyle]
+Step 5: Learn from trusted orgs | CS50, Microsoft Learn,\nGoogle AI, Hugging Face docs [videos/lifestyle]
+Step 6: Stay consistent | Apply weekly.\nSave this if you are hunting now [videos/lifestyle]

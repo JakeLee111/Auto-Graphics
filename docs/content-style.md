@@ -1,0 +1,111 @@
+# Auto Graphics content style
+
+## Purpose
+
+Guidelines for TikTok video and carousel copy in this project (CS students, junior AI / software engineers).
+
+## Context
+
+Format and tags: `docs/message-protocol.md`.  
+This doc covers **what** to write and **how** it should feel — not the `/video` / `/carousel` syntax.
+
+## Audience
+
+Computer science students and junior AI / software engineers.
+
+## Voice
+
+- Clear and beginner-friendly — informative, not academic
+- Tips and insights that solve a real pain (staying updated, where to learn, free paths)
+- Dense enough to save or rewatch, but each slide must be understandable on first read
+- Do not use Jake journey / tutorial skill tone unless the user asks
+
+## Naming resources
+
+Only name platforms or resources from large, well-known organizations.
+
+**OK examples:** Hugging Face, CS50 / Harvard, Google Colab, Kaggle, OpenAI, Google AI, Meta AI, Microsoft Learn, edX
+
+**Avoid:** individual creators, personal newsletters, niche blogs, influencer channels — unless the user names them
+
+Prefer category advice (“org blogs”, “official docs”) over listing many product names.
+
+## How-to / tip structure (default)
+
+Use this shape for educational “how to …” carousels and videos unless the user asks for another format.
+
+### Hook / thumbnail
+
+- Lead with the outcome: `How to get a remote AI SWE job`
+- Put the count in the subline: `in 6 steps` / `with 3 projects`
+- Use `\n` in the headline when two short lines read clearer than one long line
+
+```text
+hook: How to get a remote\nAI SWE job | in 6 steps
+thumbnail: How to get a remote\nAI SWE job | in 6 steps
+```
+
+### Body lines
+
+- One action per slide/clip
+- Headline = short step label: `Step 1: Build proof`
+- Subline = the explanation (keep it compact, one idea)
+- Number steps `Step 1`, `Step 2`, … matching the count in the hook
+- Use `\n` in headline or subline when a list or break makes it easier to skim
+
+```text
+Step 1: Build proof | Finish 2 to 3 small\nprojects you can demo [videos/lifestyle]
+```
+
+### Brief headers, detail in subline
+
+| Bad (long header) | Good |
+| --- | --- |
+| The problem is auto-apply spam flooding every job post | Step 1: Spot the spam |
+| Make your GitHub easy for recruiters to skim in 10 seconds | Step 3: Clean up GitHub |
+
+Header stays short. Put the “why / how” in the subline.
+
+## Library tags
+
+- Prefer the category that matches the shot (`coding`, `projects`, `lifestyle`, `broll`)
+- If the user only has one category stocked (e.g. lifestyle only), tag **all body lines** with that category
+- Carousel body = `[photos/...]` only; video body = `[videos/...]` only
+
+## Carousel habits
+
+- Thumbnail: pain or promise | short subline (include a number when it is a step list)
+- Body: one tip per slide, `headline | subline`
+- Follow `docs/message-protocol.md` for `/carousel` format and tags
+
+## Video habits
+
+- Hook: outcome | numbered promise (no library tag)
+- Body: `Step N: short label | compact explanation [videos/category]`
+- Follow `docs/message-protocol.md` for `/video` format and tags
+
+## On-slide text (fonts)
+
+The render font may break or mis-draw special Unicode characters.
+
+**Avoid:** arrows and similar symbols (`→`, `←`, `↔`, `⇒`, `➜`, etc.), fancy dashes, emoji, and other non-basic punctuation unless you know the font supports them.
+
+**Use instead:** plain words or ASCII separators. Use `\n` for same-slide line breaks.
+
+| Bad | Good |
+| --- | --- |
+| Learn → build → repeat | Learn, build, repeat |
+| Learn → build → repeat | Learn - build - repeat |
+| A → B | A to B |
+
+Prefer commas or short words (`to`, `then`) over symbols when listing a sequence.
+
+## Process
+
+1. Pick one pain point for the audience (e.g. remote jobs, AI updates, free platforms).
+2. Write hook/thumbnail with outcome + step count.
+3. Write numbered body steps: short header | compact subline; add `\n` where it helps.
+4. Tag with available library categories (or the one the user says they have).
+5. Name only large trusted orgs; drop individual creators.
+6. Avoid Unicode arrows and fancy symbols in on-slide text (see above).
+7. Read each slide once — if it needs a second pass to understand, shorten the header or split with `\n`.

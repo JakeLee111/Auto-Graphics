@@ -1,0 +1,8 @@
+/video
+hook: How to get a remote\nAI SWE job | with 3 projects
+Step 1: API wrapper | Real problem, call an API,\nreturn clean results [videos/lifestyle]
+Step 2: RAG Q and A | Load docs, chunk, retrieve,\nanswer from context only [videos/lifestyle]
+Step 3: Small full-stack app | Login, one core feature,\ndeployed and clickable [videos/lifestyle]
+Step 4: Write each README | Problem, stack, how to run,\nwhat you learned, demo link [videos/lifestyle]
+Step 5: Make it skim-friendly | Working demo, clean commits,\nshort role explanation [videos/lifestyle]
+Step 6: Ship finished work | One done project beats\nfive half-finished tutorials [videos/lifestyle]
