@@ -30,8 +30,9 @@ library/photos/<category>/   ← .jpg .jpeg .png   (for /carousel)
 library/videos/<category>/   ← .mp4 .mov         (for /video)
 ```
 
-Example categories: `lifestyle`, `broll`, `coding`, `projects`.  
-Tags in body lines look like `[photos/lifestyle]` or `[videos/coding]`.  
+Video categories: `lifestyle`, `coding`, `projects`, `working-space`.  
+Photo categories: `lifestyle` for carousel body, plus `thumbnails` for carousel cover.  
+Tags look like `[photos/lifestyle]` or `[videos/working-space]`.  
 `hook:` has **no** tag — intro mixes 6 clips from all of `library/videos/`.
 
 ## Usage (CLI)

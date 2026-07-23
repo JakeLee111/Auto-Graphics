@@ -10,18 +10,24 @@ Define the exact format of the text message (Telegram or CLI) that turns a scrip
 library/
   photos/
     thumbnails/   ← carousel slide 1 only
-    lifestyle/
-    broll/
-    coding/
-    projects/
+    lifestyle/    ← all carousel body slides
   videos/
     lifestyle/
-    broll/
     coding/
     projects/
+    working-space/
 ```
 
 Body tags are always `kind/category`, e.g. `[photos/lifestyle]` or `[videos/coding]`.
+
+**Current stock (use only these):**
+
+| Mode | Valid body tags |
+| --- | --- |
+| `/video` | `[videos/lifestyle]`, `[videos/coding]`, `[videos/projects]`, `[videos/working-space]` |
+| `/carousel` | `[photos/lifestyle]` only |
+
+Carousel cover always uses `photos/thumbnails/` via the `thumbnail:` line (no tag on that line).
 
 ## Process
 
@@ -37,8 +43,8 @@ Body tags are always `kind/category`, e.g. `[photos/lifestyle]` or `[videos/codi
 ```text
 /video
 hook: 4 weeks recap | of my journey
-I filmed my real desk for 30 days [videos/lifestyle]
-Follow for the tools I used [videos/broll]
+I filmed my real desk for 30 days [videos/working-space]
+Follow for the tools I used [videos/coding]
 ```
 
 ### Carousel example
@@ -47,7 +53,7 @@ Follow for the tools I used [videos/broll]
 /carousel
 thumbnail: 4 weeks recap | of my journey
 Desk setup that actually works [photos/lifestyle]
-Tools I used every day [photos/projects]
+Tools I used every day [photos/lifestyle]
 ```
 
 ### Forced line breaks (same slide)
@@ -68,3 +74,4 @@ Project 1: RAG Q&A | 1. Load PDFs\n2. Chunk by section\n3. Retrieve top chunks\n
 - **No photos in photos/thumbnails** — add `.jpg/.png/.heic` files there.
 - **hook: / thumbnail: has no library tag** — correct; do not put `[...]` on those lines.
 - **Want numbers on separate lines** — write `\n` between them on the same script line; do not press Enter (that starts a new slide).
+- **Unknown library** — photos only have `lifestyle` (+ `thumbnails` for cover). Videos: `lifestyle`, `coding`, `projects`, `working-space`.

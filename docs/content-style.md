@@ -54,7 +54,7 @@ thumbnail: How to get a remote\nAI SWE job | in 6 steps
 - Use `\n` in headline or subline when a list or break makes it easier to skim
 
 ```text
-Step 1: Build proof | Finish 2 to 3 small\nprojects you can demo [videos/lifestyle]
+Step 1: Build proof | Finish 2 to 3 small\nprojects you can demo [videos/projects]
 ```
 
 ### Brief headers, detail in subline
@@ -68,9 +68,21 @@ Header stays short. Put the “why / how” in the subline.
 
 ## Library tags
 
-- Prefer the category that matches the shot (`coding`, `projects`, `lifestyle`, `broll`)
-- If the user only has one category stocked (e.g. lifestyle only), tag **all body lines** with that category
-- Carousel body = `[photos/...]` only; video body = `[videos/...]` only
+Use only folders that exist. Match the shot meaning; mix tags across a script.
+
+**Video body:** `coding`, `projects`, `lifestyle`, `working-space`  
+**Carousel body:** `lifestyle` only → always `[photos/lifestyle]`  
+**Carousel cover:** `thumbnail:` only (from `photos/thumbnails/`)
+
+| Category | Meaning |
+| --- | --- |
+| `coding` | Laptop, learning, typing, study (videos) |
+| `projects` | Builds, demos, GitHub, portfolio (videos) |
+| `lifestyle` | Soft journey / life beats; **all carousel body slides** |
+| `working-space` | Desk, monitors, setup (videos only) |
+
+- Do **not** use `[videos/broll]` or photo tags other than `[photos/lifestyle]`
+- Carousel body = `[photos/lifestyle]` on every body line; video body = `[videos/...]` only
 
 ## Carousel habits
 
@@ -105,7 +117,7 @@ Prefer commas or short words (`to`, `then`) over symbols when listing a sequence
 1. Pick one pain point for the audience (e.g. remote jobs, AI updates, free platforms).
 2. Write hook/thumbnail with outcome + step count.
 3. Write numbered body steps: short header | compact subline; add `\n` where it helps.
-4. Tag with available library categories (or the one the user says they have).
+4. Tag from current stock (videos: lifestyle/coding/projects/working-space; carousel body: always photos/lifestyle).
 5. Name only large trusted orgs; drop individual creators.
 6. Avoid Unicode arrows and fancy symbols in on-slide text (see above).
 7. Read each slide once — if it needs a second pass to understand, shorten the header or split with `\n`.
