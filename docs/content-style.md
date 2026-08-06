@@ -30,41 +30,60 @@ Only name platforms or resources from large, well-known organizations.
 
 Prefer category advice (“org blogs”, “official docs”) over listing many product names.
 
-## How-to / tip structure (default)
+## Pick the shape: story vs how-to
 
-Use this shape for educational “how to …” carousels and videos unless the user asks for another format.
+Decide from the user’s request before writing.
 
-### Hook / thumbnail
+| Shape | When | Body headlines |
+| --- | --- | --- |
+| **Story** | User shares what happened (“what I did”, “how I got X”, experience, rejections, what changed) | Short story beats — **no** `Step 1`, `Step 2` |
+| **How-to** | User wants instructions the viewer can follow (“do this”, checklist, tutorial tips) | `Step 1`, `Step 2` only when each line is a real action |
 
-- Lead with the outcome: `How to get a remote AI SWE job`
-- Put the count in the subline: `in 6 steps` / `with 3 projects`
-- Use `\n` in the headline when two short lines read clearer than one long line
+Do **not** force numbered steps onto a story. Numbered steps are for instructions, not for narrative beats.
+
+### Shared rules (both shapes)
+
+- Brief headline | detail in the subline
+- One idea per slide/clip
+- Use `\n` when a break helps reading
+- Hook / thumbnail: outcome or pain | short subline; `\n` in headline when clearer
+
+### Story shape
+
+- Hook / thumbnail: `How I got …` / what happened | short context (not “in 6 steps” unless the user asks for a count)
+- Body: story beat labels only — what happened, what failed, what changed
+- Keep “I” / experience voice when the user told a personal story
+- A short actionable closer is fine without numbering (e.g. `That is what worked`)
 
 ```text
-hook: How to get a remote\nAI SWE job | in 6 steps
-thumbnail: How to get a remote\nAI SWE job | in 6 steps
+/video
+hook: How I got a remote\nAI SWE job | not LinkedIn spam
+LinkedIn felt dead | Huge competition.\n90% of my apps rejected [videos/lifestyle]
+I moved to Facebook | Developer and hiring\ngroups in my country [videos/working-space]
+Headhunters post there | Less competition.\nThey push you for commission [videos/projects]
 ```
 
-### Body lines
+### How-to shape
 
-- One action per slide/clip
-- Headline = short step label: `Step 1: Build proof`
-- Subline = the explanation (keep it compact, one idea)
-- Number steps `Step 1`, `Step 2`, … matching the count in the hook
-- Use `\n` in headline or subline when a list or break makes it easier to skim
+- Hook / thumbnail: outcome | count when useful (`in 6 steps`, `with 3 projects`)
+- Body: `Step N: short label | compact explanation`
+- Only number lines that are instructions to follow
 
 ```text
+/video
+hook: How to get a remote\nAI SWE job | in 6 steps
 Step 1: Build proof | Finish 2 to 3 small\nprojects you can demo [videos/projects]
+Step 2: Show AI skills | RAG, APIs, or fine-tuning\non Hugging Face or Google Colab [videos/coding]
 ```
 
 ### Brief headers, detail in subline
 
 | Bad (long header) | Good |
 | --- | --- |
-| The problem is auto-apply spam flooding every job post | Step 1: Spot the spam |
-| Make your GitHub easy for recruiters to skim in 10 seconds | Step 3: Clean up GitHub |
+| The problem is auto-apply spam flooding every job post | LinkedIn felt dead |
+| Make your GitHub easy for recruiters to skim in 10 seconds | Clean up GitHub |
 
-Header stays short. Put the “why / how” in the subline.
+Header stays short. Put the “why / how / what happened” in the subline.
 
 ## Library tags
 
@@ -86,14 +105,14 @@ Use only folders that exist. Match the shot meaning; mix tags across a script.
 
 ## Carousel habits
 
-- Thumbnail: pain or promise | short subline (include a number when it is a step list)
-- Body: one tip per slide, `headline | subline`
+- Thumbnail: pain, promise, or story hook | short subline
+- Body: one beat per slide, `headline | subline`
 - Follow `docs/message-protocol.md` for `/carousel` format and tags
 
 ## Video habits
 
-- Hook: outcome | numbered promise (no library tag)
-- Body: `Step N: short label | compact explanation [videos/category]`
+- Hook: outcome or story promise | short subline (no library tag)
+- Body: brief header | compact subline `[videos/category]`
 - Follow `docs/message-protocol.md` for `/video` format and tags
 
 ## On-slide text (fonts)
@@ -114,9 +133,9 @@ Prefer commas or short words (`to`, `then`) over symbols when listing a sequence
 
 ## Process
 
-1. Pick one pain point for the audience (e.g. remote jobs, AI updates, free platforms).
-2. Write hook/thumbnail with outcome + step count.
-3. Write numbered body steps: short header | compact subline; add `\n` where it helps.
+1. Decide story vs how-to from the user’s request.
+2. Write hook/thumbnail (outcome or “how I …”; add a step count only for how-to).
+3. Write body beats: short header | compact subline; add `\n` where it helps. Use `Step N` only for real instructions.
 4. Tag from current stock (videos: lifestyle/coding/projects/working-space; carousel body: always photos/lifestyle).
 5. Name only large trusted orgs; drop individual creators.
 6. Avoid Unicode arrows and fancy symbols in on-slide text (see above).

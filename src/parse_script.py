@@ -47,7 +47,12 @@ def _parse_scene_line(
             f"Line {line_number}: /carousel only uses photo libraries. "
             f"Use [photos/...] not [{library}]."
         )
-    return text, library
+    return _expand_script_breaks(text), library
+
+
+def _expand_script_breaks(text: str) -> str:
+    """Turn literal \\n / \\N into real newlines before render/uppercase."""
+    return re.sub(r"\\[nN]", "\n", text)
 
 
 def _plain_overlay_text(raw: str, line_number: int, kind: str) -> str:
@@ -60,7 +65,7 @@ def _plain_overlay_text(raw: str, line_number: int, kind: str) -> str:
         )
     if not text:
         raise PipelineError(f"Line {line_number}: {kind}: text is empty.")
-    return text
+    return _expand_script_breaks(text)
 
 
 def parse_script(message: str) -> ParsedScript:

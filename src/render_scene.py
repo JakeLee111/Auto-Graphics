@@ -5,6 +5,7 @@ FFmpeg handles scale/pad/loop/encode.
 """
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -72,8 +73,8 @@ def load_template(name: str) -> Template:
 
 
 def _expand_forced_breaks(text: str) -> str:
-    """Turn literal \\n into real newlines (one script line = one slide)."""
-    return text.replace("\\n", "\n")
+    """Turn literal \\n / \\N into real newlines (one script line = one slide)."""
+    return re.sub(r"\\[nN]", "\n", text)
 
 
 def _wrap_paragraph(
@@ -197,6 +198,11 @@ def build_text_overlay(
     headline_raw, subline = _split_dual_text(text)
     if not headline_raw:
         raise PipelineError(f"Empty headline text: {text!r}")
+
+    # Expand \\n before uppercasing so forced breaks survive ALL CAPS headlines.
+    headline_raw = _expand_forced_breaks(headline_raw)
+    if subline is not None:
+        subline = _expand_forced_breaks(subline)
 
     headline = (
         headline_raw.upper() if template.uppercase_headline else headline_raw
@@ -366,7 +372,11 @@ def render_still(
     template: Template,
     out_path: Path,
 ) -> Path:
-    """Render one vertical JPG for carousel slides (canvas size from template)."""
+    """Render one vertical JPG for carousel slides (canvas size from template).
+
+    Photos fill the frame (cover + center crop). Video clips still letterbox via
+    ``_fit_filter`` / ``render_clip``.
+    """
     source = media_path
     temp_paths: list[Path] = []
     if is_video(media_path):
@@ -382,14 +392,15 @@ def render_still(
         temp_paths.append(heic_temp)
 
     w, h = template.canvas_width, template.canvas_height
-    scale = min(w / bg.width, h / bg.height)
+    # Cover the full canvas (crop edges) — no letterbox black bars.
+    scale = max(w / bg.width, h / bg.height)
     new_w = max(1, int(bg.width * scale))
     new_h = max(1, int(bg.height * scale))
     resized = bg.resize((new_w, new_h), Image.Resampling.LANCZOS)
-    canvas = Image.new("RGBA", (w, h), (0, 0, 0, 255))
-    left = (w - new_w) // 2
-    top = (h - new_h) // 2
-    canvas.paste(resized, (left, top))
+    left = (new_w - w) // 2
+    top = (new_h - h) // 2
+    cropped = resized.crop((left, top, left + w, top + h))
+    canvas = cropped.convert("RGBA")
 
     overlay = build_text_overlay(text, template)
     final = Image.alpha_composite(canvas, overlay).convert("RGB")
