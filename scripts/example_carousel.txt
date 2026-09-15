@@ -1,4 +1,5 @@
 /carousel
+eyebrow: my journey
 thumbnail: 4 weeks recap | of my journey
-Desk setup that actually works [photos/lifestyle]
-Tools I used every day [photos/lifestyle]
+Desk setup | that actually works [photos/lifestyle]
+This GitHub demo | of what I built [photos/projects]

@@ -7,7 +7,8 @@ from src.merge import merge_scenes
 from src.models import ParsedScript, PipelineError, RenderResult
 from src.parse_script import parse_script
 from src.pick_media import pick_intro_clips, pick_media
-from src.render_scene import load_template, render_clip, render_still
+from src.render_carousel import render_content_slide, render_cover
+from src.render_scene import load_template, render_clip
 
 
 def _render_video(
@@ -64,12 +65,9 @@ def _render_video(
     return RenderResult(mode="video", paths=[final])
 
 
-def _render_carousel(
-    parsed: ParsedScript, template_name: str
-) -> RenderResult:
-    template = load_template(template_name)
+def _render_carousel(parsed: ParsedScript) -> RenderResult:
+    """Render Minimal Mono Chic slides (design from carousel-design-tokens.json)."""
     config.EXPORTS_DIR.mkdir(exist_ok=True)
-    config.TEMP_DIR.mkdir(exist_ok=True)
 
     from datetime import datetime
 
@@ -77,20 +75,25 @@ def _render_carousel(
     out_dir = config.EXPORTS_DIR / stamp
     out_dir.mkdir(parents=True, exist_ok=True)
     slides: list[Path] = []
-    slide_number = 1
 
-    # Thumbnail is always the first carousel image.
-    if parsed.thumbnail_text is not None:
-        media = pick_media(config.THUMBNAIL_LIBRARY, images_only=True)
-        out = out_dir / f"slide_{slide_number:02d}.jpg"
-        slides.append(render_still(parsed.thumbnail_text, media, template, out))
-        slide_number += 1
+    # Thumbnail is always the first carousel image (the cover).
+    media = pick_media(config.THUMBNAIL_LIBRARY, images_only=True)
+    slides.append(
+        render_cover(
+            parsed.thumbnail_text,
+            parsed.eyebrow_text,
+            media,
+            out_dir / "slide_01.jpg",
+        )
+    )
 
-    for scene in parsed.body:
+    total = len(parsed.body)
+    for position, scene in enumerate(parsed.body):
         media = pick_media(scene.library, images_only=True)
-        out = out_dir / f"slide_{slide_number:02d}.jpg"
-        slides.append(render_still(scene.text, media, template, out))
-        slide_number += 1
+        out = out_dir / f"slide_{position + 2:02d}.jpg"
+        slides.append(
+            render_content_slide(scene.text, position, total, media, out)
+        )
 
     return RenderResult(mode="carousel", paths=slides)
 
@@ -99,5 +102,6 @@ def run(message: str, template_name: str = config.DEFAULT_TEMPLATE) -> RenderRes
     """Turn a script message into a video or a set of carousel slides."""
     parsed = parse_script(message)
     if parsed.mode == "carousel":
-        return _render_carousel(parsed, template_name)
+        # Carousel look is fixed by the design tokens, not template_name.
+        return _render_carousel(parsed)
     return _render_video(parsed, template_name)

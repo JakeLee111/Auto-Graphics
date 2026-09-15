@@ -9,7 +9,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 import config
 from src.models import PipelineError, Template
@@ -122,7 +122,7 @@ def _parse_color(color: str, alpha: int = 255) -> tuple[int, int, int, int]:
     return (255, 255, 255, alpha)
 
 
-def _split_dual_text(text: str) -> tuple[str, str | None]:
+def split_dual_text(text: str) -> tuple[str, str | None]:
     """Split 'HEADLINE | subline' into parts. No pipe = headline only."""
     if "|" not in text:
         return text.strip(), None
@@ -195,7 +195,7 @@ def build_text_overlay(
         "RGBA", (template.canvas_width, template.canvas_height), (0, 0, 0, 0)
     )
 
-    headline_raw, subline = _split_dual_text(text)
+    headline_raw, subline = split_dual_text(text)
     if not headline_raw:
         raise PipelineError(f"Empty headline text: {text!r}")
 
@@ -349,8 +349,17 @@ def render_clip(
     return out_path
 
 
-def _load_rgb_image(path: Path) -> tuple[Image.Image, Path | None]:
-    """Open an image as RGB. Converts HEIC via FFmpeg when needed.
+def _open_oriented(path: Path) -> Image.Image:
+    """Open an image and apply EXIF / display-matrix rotation."""
+    img = Image.open(path)
+    oriented = ImageOps.exif_transpose(img)
+    if oriented is None:
+        oriented = img
+    return oriented.convert("RGB")
+
+
+def load_rgb_image(path: Path) -> tuple[Image.Image, Path | None]:
+    """Open an image as RGB, upright. Converts HEIC via FFmpeg when needed.
 
     Returns:
         (image, temp_path_to_delete_or_None)
@@ -362,8 +371,8 @@ def _load_rgb_image(path: Path) -> tuple[Image.Image, Path | None]:
         run_ffmpeg(["-i", str(path), "-frames:v", "1", str(converted)])
         if not converted.exists():
             raise PipelineError(f"Could not convert HEIC photo: {path.name}")
-        return Image.open(converted).convert("RGB"), converted
-    return Image.open(path).convert("RGB"), None
+        return _open_oriented(converted), converted
+    return _open_oriented(path), None
 
 
 def render_still(
@@ -387,7 +396,7 @@ def render_still(
         source = temp_frame
         temp_paths.append(temp_frame)
 
-    bg, heic_temp = _load_rgb_image(source)
+    bg, heic_temp = load_rgb_image(source)
     if heic_temp is not None:
         temp_paths.append(heic_temp)
 

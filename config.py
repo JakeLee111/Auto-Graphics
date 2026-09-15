@@ -23,6 +23,9 @@ TEMP_DIR = PROJECT_ROOT / "temp"
 USAGE_LOG_PATH = PROJECT_ROOT / "usage_log.json"
 
 DEFAULT_TEMPLATE = "hook"
+# Carousel design tokens (Minimal Mono Chic). Edit this JSON to change the
+# carousel look — the renderer reads every color/font/size/position from it.
+CAROUSEL_TOKENS_PATH = TEMPLATES_DIR / "carousel-design-tokens.json"
 DEFAULT_BODY_SECONDS = 2.0
 INTRO_CUT_SECONDS = 0.5
 INTRO_CUT_COUNT = 6
@@ -69,7 +72,10 @@ def list_templates() -> list[str]:
     """Return template names (without .json) from templates/."""
     if not TEMPLATES_DIR.is_dir():
         return []
-    return sorted(p.stem for p in TEMPLATES_DIR.glob("*.json"))
+    return sorted(
+        p.stem for p in TEMPLATES_DIR.glob("*.json")
+        if p != CAROUSEL_TOKENS_PATH
+    )
 
 
 def list_fonts() -> list[str]:

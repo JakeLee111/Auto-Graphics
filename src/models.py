@@ -19,12 +19,14 @@ class ParsedScript:
 
     hook_text: video intro overlay (no library). Clips from all library/videos/.
     thumbnail_text: carousel first slide (no library). Photo from photos/thumbnails/.
+    eyebrow_text: optional small label above the carousel cover title.
     """
 
     mode: str  # "video" | "carousel"
     hook_text: str | None
     thumbnail_text: str | None
     body: list[Scene]
+    eyebrow_text: str | None = None
 
 
 @dataclass(frozen=True)

@@ -31,8 +31,8 @@ library/videos/<category>/   ← .mp4 .mov         (for /video)
 ```
 
 Video categories: `lifestyle`, `coding`, `projects`, `working-space`.  
-Photo categories: `lifestyle` for carousel body, plus `thumbnails` for carousel cover.  
-Tags look like `[photos/lifestyle]` or `[videos/working-space]`.  
+Photo categories: `lifestyle` and `projects` for carousel body, plus `thumbnails` for carousel cover.  
+Tags look like `[photos/lifestyle]`, `[photos/projects]`, or `[videos/working-space]`.  
 `hook:` has **no** tag — intro mixes 6 clips from all of `library/videos/`.
 
 ## Usage (CLI)
@@ -42,9 +42,9 @@ python -m src.cli --script scripts/example_video.txt
 python -m src.cli --script scripts/example_carousel.txt
 ```
 
-## Aesthetic template (dual font)
+## Aesthetic templates
 
-Default look in `templates/hook.json`:
+### Video (`templates/hook.json`)
 
 - Headline: Bebas Neue, yellow `#F5C518`, UPPERCASE
 - Subline: Caveat Bold, white, letter case (after a `|` in the text)
@@ -52,7 +52,21 @@ Default look in `templates/hook.json`:
 - Write scenes like: `4 weeks recap | of my journey [videos/lifestyle]`
 - Video intro: `hook: 4 weeks recap | of my journey` (no library tag)
 
-Tune sizes/colors in the JSON. Browse more fonts at [Google Fonts](https://fonts.google.com).
+### Carousel — Minimal Mono Chic (`templates/carousel-design-tokens.json`)
+
+Carousels render at 1080×1920 (9:16, full TikTok frame) with a photo background, a dark
+top/bottom gradient for readable text, and a two-font system
+(Outfit + Instrument Serif Italic — files in `fonts/`):
+
+- **Cover:** optional `eyebrow:` label + uppercase title with one word
+  auto-styled in gold italic + subtitle + SWIPE footer
+- **Body slides:** always `heading | body` + auto numbering `01, 02, ...` + page dots
+- A body line with no `|` treats the whole sentence as the heading (max 2 lines) — split with `|`
+
+Edit the tokens JSON to change colors, sizes, spacing, or the gradient —
+the renderer (`src/render_carousel.py`) reads everything from it.
+
+Tune sizes/colors in the JSONs. Browse more fonts at [Google Fonts](https://fonts.google.com).
 
 ## Sound effects
 
@@ -128,6 +142,7 @@ Dockerfile      Cloud Run image
 - **Unknown library** — tag must be `photos/category` or `videos/category` and the folder must exist.
 - **/carousel only uses photo libraries** — use `[photos/...]`.
 - **Telegram ignores /video scripts** — bot registers `/video` and `/carousel` as commands.
+- **Conflict: terminated by other getUpdates** — two bots are polling the same token. Stop the extra one (other terminal or Cloud Run), then `python -m src.telegram_bot` once.
 - **FFmpeg failed** — ensure `ffmpeg` is on PATH.
-- **"Carousel needs a thumbnail:"** — first content line after `/carousel` must be `thumbnail: your text`.
+- **"Slide heading is too long"** — carousel body lines need `short clause | rest [photos/lifestyle]` or `[photos/projects]`.
 - **No photos in photos/thumbnails** — add `.jpg/.png/.heic` files there for slide 1.

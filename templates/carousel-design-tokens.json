@@ -1,0 +1,130 @@
+{
+  "template_name": "Minimal Mono Chic (T3)",
+  "canvas": { "width": 1080, "height": 1920, "unit": "px", "aspect_ratio": "9:16" },
+  "safe_margins": { "top": 120, "bottom": 120, "left": 96, "right": 96 },
+
+  "fonts": {
+    "primary": {
+      "family": "Outfit",
+      "source": "Google Fonts (free)",
+      "url": "https://fonts.google.com/specimen/Outfit",
+      "files_needed": ["Outfit-Regular.ttf", "Outfit-Bold.ttf"]
+    },
+    "accent": {
+      "family": "Instrument Serif",
+      "style": "italic",
+      "source": "Google Fonts (free)",
+      "url": "https://fonts.google.com/specimen/Instrument+Serif",
+      "files_needed": ["InstrumentSerif-Italic.ttf"]
+    },
+    "rule": "Only these two font families are ever used, in only these two roles. Primary = structure/body/caps. Accent italic = the one emotional/connector word + numbering. Never substitute or add a third font."
+  },
+
+  "colors": {
+    "ink_light": "#F7F4EF",
+    "accent_gold": "#C4A87A",
+    "body_muted": "#E4E0D8",
+    "fallback_bg": "#111111",
+    "dot_active": "#C4A87A",
+    "dot_inactive": "#FFFFFFAA"
+  },
+
+  "background": {
+    "type": "user_photo",
+    "fit": "cover",
+    "note": "Photo fills the full 1080x1920 TikTok canvas, cropped to cover (no letterboxing).",
+    "overlay": {
+      "purpose": "Keeps text legible on ANY photo. This is what makes the template 'work' with arbitrary backgrounds — do not skip it.",
+      "type": "vertical_gradient_scrim",
+      "direction": "top_to_bottom",
+      "stops": [
+        { "position": 0.0,  "opacity": 0.64 },
+        { "position": 0.42, "opacity": 0.42 },
+        { "position": 0.58, "opacity": 0.12 },
+        { "position": 0.80, "opacity": 0.38 },
+        { "position": 1.0,  "opacity": 0.68 }
+      ],
+      "color": "#000000",
+      "note": "Dark through the top ~40% (where heading + body sit), then opens so the photo still reads, then darkens again for dots/SWIPE."
+    }
+  },
+
+  "type_styles": {
+    "eyebrow": {
+      "font": "Outfit", "weight": 700, "size": 24, "letter_spacing": 6,
+      "color": "accent_gold", "case": "uppercase", "align": "center"
+    },
+    "divider_line": { "width": 56, "thickness": 2, "color": "accent_gold" },
+    "title": {
+      "font": "Outfit", "weight": 700, "size": 78, "line_height": 100,
+      "letter_spacing": 1, "color": "ink_light", "case": "uppercase", "align": "center",
+      "max_lines": 3,
+      "accent_word": {
+        "font": "Instrument Serif", "style": "italic", "weight": 400,
+        "size": 92, "color": "accent_gold", "case": "lowercase",
+        "rule": "Exactly ONE short word in the title (a connector like 'in/my/the' or the single emotional keyword) renders in this style. Skip 1–2 letter connectors (i/a/an). It sits inline with the surrounding uppercase words, baseline-aligned, slightly larger."
+      }
+    },
+    "subtitle": {
+      "font": "Outfit", "weight": 400, "size": 32, "line_height": 44,
+      "color": "body_muted", "align": "center", "max_width_pct": 0.80
+    },
+    "footer_label": {
+      "font": "Outfit", "weight": 700, "size": 24, "letter_spacing": 5,
+      "color": "ink_light", "case": "uppercase", "align": "center"
+    },
+    "index_number": {
+      "font": "Instrument Serif", "style": "italic", "size": 64,
+      "color": "accent_gold", "align": "center", "format": "01, 02, 03..."
+    },
+    "content_heading": {
+      "font": "Outfit", "weight": 700, "size": 50, "line_height": 62,
+      "color": "ink_light", "align": "center", "max_lines": 2
+    },
+    "body_text": {
+      "font": "Outfit", "weight": 400, "size": 38, "line_height": 56,
+      "color": "body_muted", "align": "center", "max_width_pct": 0.75, "max_lines": 4
+    }
+  },
+
+  "components": {
+    "swipe_arrow": {
+      "style": "minimal_chevron", "stroke_width": 3, "color": "ink_light",
+      "position": "inline_right_of_footer_label"
+    },
+    "page_dots": {
+      "radius": 5, "gap": 18, "position": "bottom_center", "y_from_bottom": 140
+    }
+  },
+
+  "text_shadow": {
+    "offset": 2,
+    "blur": 8,
+    "opacity": 0.78,
+    "note": "Soft black shadow under every overlay mark (type, dots, SWIPE) so copy stays readable on light photos."
+  },
+
+  "slide_layouts": {
+    "poster_thumbnail": {
+      "order": ["eyebrow", "divider_line", "title", "subtitle", "footer_label+swipe_arrow"],
+      "eyebrow_y": 200,
+      "divider_y": 266,
+      "title_block_center_y": 640,
+      "subtitle_gap_after_title": 140,
+      "footer_y_from_bottom": 160
+    },
+    "content_slide": {
+      "order": ["index_number", "content_heading", "body_text", "page_dots"],
+      "index_number_y": 160,
+      "gap_after_index": 20,
+      "gap_after_heading": 28,
+      "dots_y_from_bottom": 140
+    }
+  },
+
+  "text_rules": {
+    "numbering_format": "01, 02, 03... in Instrument Serif Italic",
+    "title_accent_word": "exactly one word per title in the gold italic accent",
+    "tone": "short, punchy, lowercase body copy; uppercase only for eyebrow/title/footer"
+  }
+}

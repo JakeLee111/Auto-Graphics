@@ -14,12 +14,16 @@ Each finished job is sent back to the chat that requested it.
 from __future__ import annotations
 
 import asyncio
+import fcntl
 import logging
+import os
 import re
 import time
 from dataclasses import dataclass
+from typing import IO
 
 from telegram import InputMediaPhoto, Message, Update
+from telegram.error import Conflict
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -30,6 +34,7 @@ from telegram.ext import (
 
 import config
 from src.models import PipelineError, RenderResult
+from src.parse_script import prepare_script
 from src.pipeline import run
 
 logger = logging.getLogger("auto_graphics.bot")
@@ -49,6 +54,8 @@ render_queue: asyncio.Queue[RenderJob] = asyncio.Queue()
 pending_jobs = 0
 pending_lock = asyncio.Lock()
 worker_started = False
+_instance_lock: IO[str] | None = None
+_conflict_logged = False
 
 
 class _RedactTokenFilter(logging.Filter):
@@ -91,6 +98,41 @@ def _configure_logging(token: str) -> None:
     logging.getLogger("telegram").setLevel(logging.WARNING)
     logging.getLogger("telegram.ext").setLevel(logging.WARNING)
 
+
+def _acquire_instance_lock() -> None:
+    """Fail fast if another local python -m src.telegram_bot is already running."""
+    global _instance_lock
+    config.TEMP_DIR.mkdir(exist_ok=True)
+    lock_path = config.TEMP_DIR / "telegram_bot.lock"
+    handle = lock_path.open("w")
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        handle.close()
+        raise SystemExit(
+            "Another telegram bot is already running on this Mac.\n"
+            "Stop it with Ctrl+C in that terminal, then start this one again."
+        )
+    handle.write(str(os.getpid()))
+    handle.flush()
+    _instance_lock = handle
+
+
+async def _error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log Telegram API errors without dumping a traceback for known conflicts."""
+    global _conflict_logged
+    err = context.error
+    if isinstance(err, Conflict):
+        if not _conflict_logged:
+            _conflict_logged = True
+            logger.error(
+                "Another process is already polling this bot token "
+                "(a second terminal, or Cloud Run). Stop that instance, "
+                "then restart: python -m src.telegram_bot"
+            )
+        return
+    logger.exception("Telegram error: %s", err)
+
 HELP_TEXT = (
     "Send a script starting with /video or /carousel.\n\n"
     "Video example:\n"
@@ -99,13 +141,17 @@ HELP_TEXT = (
     "I filmed my desk for 30 days [videos/working-space]\n\n"
     "Carousel example:\n"
     "/carousel\n"
+    "eyebrow: my journey\n"
     "thumbnail: 4 weeks recap | of my journey\n"
-    "Slide two [photos/lifestyle]\n"
-    "Slide three [photos/lifestyle]\n\n"
+    "Desk setup | that actually works [photos/lifestyle]\n"
+    "This GitHub demo | of what I built [photos/projects]\n\n"
     "thumbnail: is always slide 1 (from photos/thumbnails).\n"
+    "eyebrow: is optional — small gold label above the cover title.\n"
     "hook: has no library tag — intro mixes 6 clips from all videos.\n"
     "Body tags: [photos/...] or [videos/...].\n"
-    "Use | to split headline (yellow, ALL CAPS) and subline (white).\n"
+    "Carousel: always use |  (short heading | rest of the sentence).\n"
+    "Video: | is optional (headline | subline).\n"
+    "Carousel numbering, dots, and SWIPE are automatic.\n"
     "Use \\n inside text for a new visual line on the same slide.\n\n"
     "You can send several scripts at once — they queue and render one by one.\n"
     "Each finished video or carousel is sent back when that job completes.\n\n"
@@ -229,6 +275,36 @@ async def _render_worker() -> None:
             render_queue.task_done()
 
 
+def _command_name(text: str) -> str | None:
+    """Return 'video' or 'carousel' when the message starts with that command."""
+    first = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")
+    match = re.match(
+        r"^/(video|carousel)(?:@[A-Za-z0-9_]+)?\b", first, re.IGNORECASE
+    )
+    if match:
+        return match.group(1).lower()
+    return None
+
+
+def _implied_mode(update: Update) -> str | None:
+    """Mode from the first line or a Telegram bot_command entity."""
+    message = update.message
+    if message is None:
+        return None
+    text = message.text or ""
+    found = _command_name(text)
+    if found:
+        return found
+    for entity in message.entities or []:
+        if entity.type != "bot_command":
+            continue
+        token = text[entity.offset:entity.offset + entity.length]
+        name = token.lstrip("/").split("@")[0].lower()
+        if name in {"video", "carousel"}:
+            return name
+    return None
+
+
 async def handle_script(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Accept a script into the queue; worker renders and replies when ready."""
     global pending_jobs, worker_started
@@ -240,7 +316,8 @@ async def handle_script(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         asyncio.create_task(_render_worker())
         worker_started = True
 
-    script = update.message.text or ""
+    raw = update.message.text or ""
+    script = prepare_script(raw, implied_mode=_implied_mode(update))
     label = next(
         (line.strip() for line in script.splitlines() if line.strip()),
         "",
@@ -278,10 +355,13 @@ async def handle_mode_command(
 
 
 async def _on_startup(app: Application) -> None:
-    """Start the single render worker when the bot application boots."""
+    """Clear a leftover webhook, then start the render worker."""
     global worker_started
+    if not config.TELEGRAM_WEBHOOK_URL:
+        await app.bot.delete_webhook(drop_pending_updates=True)
     if not worker_started:
-        app.create_task(_render_worker())
+        # post_init runs before Application.create_task is allowed.
+        asyncio.get_running_loop().create_task(_render_worker())
         worker_started = True
 
 
@@ -292,6 +372,7 @@ def build_app() -> Application:
         .post_init(_on_startup)
         .build()
     )
+    app.add_error_handler(_error_handler)
     app.add_handler(CommandHandler(["start", "help"], start))
     app.add_handler(CommandHandler("options", options))
     # Multiline scripts often start with /video or /carousel — those are commands.
@@ -307,6 +388,7 @@ def main() -> None:
         )
 
     _configure_logging(config.TELEGRAM_BOT_TOKEN)
+    _acquire_instance_lock()
     app = build_app()
 
     if config.TELEGRAM_WEBHOOK_URL:
@@ -322,7 +404,7 @@ def main() -> None:
         )
     else:
         logger.info("Bot started (polling) — waiting for scripts")
-        app.run_polling()
+        app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
