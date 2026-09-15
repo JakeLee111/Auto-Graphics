@@ -93,7 +93,7 @@ Send a full multiline script starting with `/video` or `/carousel`.
 
 ## Cloud Run webhook (starts when you message)
 
-Cursor cloud agents cannot host a live bot. Use Google Cloud Run (or similar) instead:
+This bot cannot stay running inside a local editor agent. Use Google Cloud Run (or similar) instead:
 
 1. Put your real media in `library/` before building the image (or sync later via volume/GCS).
 2. Build and deploy:

@@ -13,3 +13,4 @@ library/videos/*/*
 usage_log.json
 .DS_Store
 *.egg-info/
+.cursor/
