@@ -8,7 +8,7 @@ Webhook (Cloud Run): set TELEGRAM_WEBHOOK_URL and PORT.
 
 Requires TELEGRAM_BOT_TOKEN in .env (see .env.example).
 Scripts are accepted into a FIFO queue; one render runs at a time.
-Each finished job is sent back to the chat that requested it.
+Each finished job is sent back as original files (no Telegram compression).
 """
 
 from __future__ import annotations
@@ -20,9 +20,10 @@ import os
 import re
 import time
 from dataclasses import dataclass
-from typing import IO
+from pathlib import Path
+from typing import IO, Sequence
 
-from telegram import InputMediaPhoto, Message, Update
+from telegram import InputMediaDocument, Message, Update
 from telegram.error import Conflict
 from telegram.ext import (
     Application,
@@ -38,6 +39,10 @@ from src.parse_script import prepare_script
 from src.pipeline import run
 
 logger = logging.getLogger("auto_graphics.bot")
+
+# Telegram albums (sendMediaGroup) allow 2–10 items. Longer carousels are
+# sent as consecutive albums so no slide is dropped.
+TELEGRAM_ALBUM_MAX = 10
 
 
 @dataclass
@@ -141,20 +146,19 @@ HELP_TEXT = (
     "I filmed my desk for 30 days [videos/working-space]\n\n"
     "Carousel example:\n"
     "/carousel\n"
-    "eyebrow: my journey\n"
     "thumbnail: 4 weeks recap | of my journey\n"
-    "Desk setup | that actually works [photos/lifestyle]\n"
-    "This GitHub demo | of what I built [photos/projects]\n\n"
+    "Desk setup that actually works.\\nTools I used every day. [photos/lifestyle]\n"
+    "This GitHub demo of what I built. [photos/projects]\n\n"
     "thumbnail: is always slide 1 (from photos/thumbnails).\n"
-    "eyebrow: is optional — small gold label above the cover title.\n"
+    "Cover: left of | is the yellow headline, right is the italic line.\n"
+    "Do not use | on carousel body slides — write full sentences.\n"
     "hook: has no library tag — intro mixes 6 clips from all videos.\n"
     "Body tags: [photos/...] or [videos/...].\n"
-    "Carousel: always use |  (short heading | rest of the sentence).\n"
+    "Group 2-3 related sentences on one body slide with \\n between them.\n"
     "Video: | is optional (headline | subline).\n"
-    "Carousel numbering, dots, and SWIPE are automatic.\n"
     "Use \\n inside text for a new visual line on the same slide.\n\n"
     "You can send several scripts at once — they queue and render one by one.\n"
-    "Each finished video or carousel is sent back when that job completes.\n\n"
+    "Each job comes back as high quality files to download.\n\n"
     "Commands: /start /help /options\n"
     "Libraries: {libraries}"
 )
@@ -189,27 +193,56 @@ async def options(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(_options_text())
 
 
-async def _send_result(message: Message, result: RenderResult) -> None:
-    """Upload the finished video or carousel as a reply to the request message."""
-    if result.mode == "carousel":
+def _chunks(items: Sequence[Path], size: int = TELEGRAM_ALBUM_MAX) -> list[list[Path]]:
+    """Split paths into groups of `size` (Telegram album max is 10)."""
+    return [list(items[i : i + size]) for i in range(0, len(items), size)]
+
+
+async def _send_document_album(message: Message, paths: Sequence[Path]) -> None:
+    """Send original files (no Telegram photo/video compression)."""
+    if len(paths) == 1:
+        path = paths[0]
+        with path.open("rb") as document:
+            await message.reply_document(
+                document=document,
+                filename=path.name,
+                disable_content_type_detection=True,
+                write_timeout=180,
+            )
+        return
+    handles = []
+    try:
         media = []
-        handles = []
-        try:
-            for path in result.paths:
-                handle = path.open("rb")
-                handles.append(handle)
-                media.append(InputMediaPhoto(media=handle))
-            await message.reply_media_group(media=media, write_timeout=180)
-        finally:
-            for handle in handles:
-                handle.close()
-        logger.info("Sent carousel to Telegram")
+        for path in paths:
+            handle = path.open("rb")
+            handles.append(handle)
+            media.append(InputMediaDocument(media=handle, filename=path.name))
+        await message.reply_media_group(media=media, write_timeout=180)
+    finally:
+        for handle in handles:
+            handle.close()
+
+
+async def _send_result(message: Message, result: RenderResult) -> None:
+    """Send the original files (no Telegram photo/video compression)."""
+    if result.mode == "carousel":
+        albums = _chunks(result.paths)
+        for album in albums:
+            await _send_document_album(message, album)
+        logger.info(
+            "Sent carousel to Telegram (%d slides in %d file albums)",
+            len(result.paths),
+            len(albums),
+        )
         return
 
     final = result.paths[0]
-    with final.open("rb") as video:
-        await message.reply_video(
-            video=video, caption=final.name, write_timeout=180
+    with final.open("rb") as document:
+        await message.reply_document(
+            document=document,
+            filename=final.name,
+            disable_content_type_detection=True,
+            write_timeout=180,
         )
     logger.info("Sent video to Telegram")
 
@@ -258,7 +291,16 @@ async def _process_job(job: RenderJob) -> None:
             result.paths[0].name,
             elapsed,
         )
-    await _send_result(job.message, result)
+    try:
+        await _send_result(job.message, result)
+    except Exception:
+        logger.exception(
+            "Job #%d rendered but sending to Telegram failed",
+            job.position,
+        )
+        await job.message.reply_text(
+            "Rendered, but sending to Telegram failed. Check the server logs."
+        )
 
 
 async def _render_worker() -> None:
@@ -337,12 +379,12 @@ async def handle_script(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     if position == 1:
         await update.message.reply_text(
-            "Queued #1 — starting now. I'll send the file when it finishes."
+            "Queued #1 — starting now. I'll send the files when it finishes."
         )
     else:
         await update.message.reply_text(
             f"Queued #{position}. "
-            "I'll send your file when this job finishes (one at a time)."
+            "I'll send your files when this job finishes (one at a time)."
         )
     logger.info("Queued #%d: %s", position, label or "(empty)")
 

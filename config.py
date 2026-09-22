@@ -23,8 +23,8 @@ TEMP_DIR = PROJECT_ROOT / "temp"
 USAGE_LOG_PATH = PROJECT_ROOT / "usage_log.json"
 
 DEFAULT_TEMPLATE = "hook"
-# Carousel design tokens (Minimal Mono Chic). Edit this JSON to change the
-# carousel look — the renderer reads every color/font/size/position from it.
+# Carousel design tokens (Classic Magazine). Edit this JSON to change the
+# carousel look — the renderer reads every color/font/size/layout rule from it.
 CAROUSEL_TOKENS_PATH = TEMPLATES_DIR / "carousel-design-tokens.json"
 DEFAULT_BODY_SECONDS = 2.0
 INTRO_CUT_SECONDS = 0.5

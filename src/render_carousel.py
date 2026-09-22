@@ -1,43 +1,34 @@
-"""Render /carousel slides in the "Minimal Mono Chic" 1080x1920 design.
+"""Render /carousel slides in the Classic Magazine 1080x1920 design.
 
-Every color, font, size, and position comes from
+Every color, font, size, and layout rule comes from
 templates/carousel-design-tokens.json (config.CAROUSEL_TOKENS_PATH).
 Edit that JSON to change the look — never hardcode design values here.
 
 Slide types:
-  cover          — eyebrow (optional) + divider + title (one gold italic
-                   accent word) + subtitle + SWIPE footer with arrow
-  content slide  — index number (01, 02, ...) + heading + body + page dots
+  cover          — yellow Outfit Bold headline + Crimson Pro italic subline,
+                   centered on the visible photo
+  content slide  — one Outfit Regular paragraph on a liquid-glass card,
+                   centered on the visible photo; thumbnail is unchanged
+                   (vignette only)
+
+Photos fill the frame (cover-fit, sharp edges). Cover slides use a dark
+vignette behind the headline. Body slides use a clear liquid-glass card
+around the paragraph. No labels, numbers, arrows, or page dots.
 """
 
 import json
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 import config
 from src.models import PipelineError
 from src.render_scene import load_rgb_image, split_dual_text
 
-# Fixed footer label on the cover slide (design decision, not user copy).
-FOOTER_LABEL = "swipe"
-
-# Vertical nudge so the larger italic accent word sits on the title baseline.
-ACCENT_BASELINE_OFFSET = -14
-
-# Short connector words that make the best single accent word in a title.
-CONNECTOR_WORDS = {
-    "a", "an", "and", "at", "for", "i", "in", "is", "my",
-    "of", "on", "or", "the", "to", "vs", "with", "your",
-}
-
-# Too small to read as the gold italic accent (tiny "i" / "a" / "an").
-WEAK_ACCENT_WORDS = {"a", "an", "i"}
-
 _FONT_FILES = {
     ("Outfit", 400, False): "Outfit-Regular.ttf",
     ("Outfit", 700, False): "Outfit-Bold.ttf",
-    ("Instrument Serif", 400, True): "InstrumentSerif-Italic.ttf",
+    ("Crimson Pro", 400, True): "CrimsonPro-Italic.ttf",
 }
 
 _tokens_cache: dict | None = None
@@ -55,22 +46,17 @@ def load_tokens() -> dict:
 
 
 # ---------------------------------------------------------------- utilities
-def _hex_to_rgba(hexstr: str, alpha: int = 255) -> tuple[int, int, int, int]:
-    """Parse '#rrggbb' or '#rrggbbaa' into an RGBA tuple."""
+def _hex_to_rgb(hexstr: str) -> tuple[int, int, int]:
     hexstr = hexstr.lstrip("#")
-    if len(hexstr) == 8:
-        r, g, b, a = (int(hexstr[i:i + 2], 16) for i in (0, 2, 4, 6))
-        return (r, g, b, a)
-    r, g, b = (int(hexstr[i:i + 2], 16) for i in (0, 2, 4))
-    return (r, g, b, alpha)
+    return tuple(int(hexstr[i:i + 2], 16) for i in (0, 2, 4))
 
 
-def _color(name_or_hex: str, alpha: int = 255) -> tuple[int, int, int, int]:
-    """Resolve a token color name (e.g. 'accent_gold') or raw hex string."""
+def _color(name: str) -> tuple[int, int, int]:
+    """Resolve a token color name (e.g. 'accent_yellow')."""
     tokens = load_tokens()
-    if name_or_hex in tokens["colors"]:
-        return _hex_to_rgba(tokens["colors"][name_or_hex], alpha)
-    return _hex_to_rgba(name_or_hex, alpha)
+    if name not in tokens["colors"]:
+        raise PipelineError(f"Unknown carousel color: {name}")
+    return _hex_to_rgb(tokens["colors"][name])
 
 
 def _font(
@@ -84,7 +70,8 @@ def _font(
     if not path.exists():
         raise PipelineError(
             f"Font file not found: {path}. "
-            "Copy the carousel fonts into fonts/."
+            "Copy Outfit-Regular.ttf, Outfit-Bold.ttf, and "
+            "CrimsonPro-Italic.ttf into fonts/."
         )
     return ImageFont.truetype(str(path), size)
 
@@ -118,11 +105,20 @@ def _text_w(draw, text: str, fnt, tracking: int = 0) -> float:
 def _draw_tracked(
     draw, xy, text: str, fnt, fill, tracking: int = 0, center_x=None
 ) -> float:
-    """Draw text with letter spacing; optionally centered on center_x."""
+    """Draw text with letter spacing; optionally centered on center_x.
+
+    When tracking is 0, draw the whole string at once so italic kerning
+    (e.g. Crimson Pro 'f') stays intact. Per-character drawing is only
+    for the yellow headline's letter-spacing.
+    """
     x, y = xy
     width = _text_w(draw, text, fnt, tracking)
     if center_x is not None:
         x = center_x - width / 2
+    if tracking == 0:
+        box = draw.textbbox((0, 0), text, font=fnt)
+        draw.text((x - box[0], y), text, font=fnt, fill=fill)
+        return width
     for ch in text:
         draw.text((x, y), ch, font=fnt, fill=fill)
         box = draw.textbbox((0, 0), ch, font=fnt)
@@ -130,13 +126,15 @@ def _draw_tracked(
     return width
 
 
-def _wrap_paragraph(draw, text: str, fnt, max_width: float) -> list[str]:
+def _wrap_paragraph(
+    draw, text: str, fnt, max_width: float, tracking: int = 0
+) -> list[str]:
     """Greedy word wrap for one paragraph."""
     lines: list[str] = []
     current = ""
     for word in text.split():
         trial = f"{current} {word}".strip()
-        if _text_w(draw, trial, fnt) <= max_width or not current:
+        if _text_w(draw, trial, fnt, tracking) <= max_width or not current:
             current = trial
         else:
             lines.append(current)
@@ -146,18 +144,22 @@ def _wrap_paragraph(draw, text: str, fnt, max_width: float) -> list[str]:
     return lines
 
 
-def _wrap(draw, text: str, fnt, max_width: float) -> list[str]:
+def _wrap(
+    draw, text: str, fnt, max_width: float, tracking: int = 0
+) -> list[str]:
     """Word wrap that honors forced newlines already present in the text."""
     lines: list[str] = []
     for paragraph in text.split("\n"):
         paragraph = paragraph.strip()
         if paragraph:
-            lines.extend(_wrap_paragraph(draw, paragraph, fnt, max_width))
-    return _balance_wrap(draw, lines, fnt, max_width)
+            lines.extend(
+                _wrap_paragraph(draw, paragraph, fnt, max_width, tracking)
+            )
+    return _balance_wrap(draw, lines, fnt, max_width, tracking)
 
 
 def _balance_wrap(
-    draw, lines: list[str], fnt, max_width: float
+    draw, lines: list[str], fnt, max_width: float, tracking: int = 0
 ) -> list[str]:
     """Pull a word down when the last line is a single orphan word."""
     if len(lines) < 2:
@@ -167,7 +169,7 @@ def _balance_wrap(
     if len(last_words) != 1 or len(prev_words) < 3:
         return lines
     trial = f"{prev_words[-1]} {lines[-1]}"
-    if _text_w(draw, trial, fnt) > max_width:
+    if _text_w(draw, trial, fnt, tracking) > max_width:
         return lines
     balanced = list(lines)
     balanced[-2] = " ".join(prev_words[:-1])
@@ -185,345 +187,278 @@ def _check_max_lines(lines: list[str], limit: int, what: str) -> None:
 
 
 def _centered_multiline(
-    draw, lines: list[str], fnt, center_x, top_y, fill, line_height
+    draw, lines: list[str], fnt, center_x, top_y, fill, line_height,
+    tracking: int = 0,
 ) -> float:
     """Draw centered lines top-down; return y after the last line."""
     y = top_y
     for line in lines:
-        _draw_tracked(draw, (0, y), line, fnt, fill, center_x=center_x)
+        _draw_tracked(
+            draw, (0, y), line, fnt, fill, tracking, center_x=center_x
+        )
         y += line_height
     return y
 
 
+def _join_dual(text: str) -> str:
+    """Body copy as one paragraph. A leftover `|` is joined with a space."""
+    heading, body = split_dual_text(text)
+    if not heading:
+        return body or ""
+    if not body:
+        return heading
+    return f"{heading} {body}"
+
+
 # --------------------------------------------------------------- background
-def _cover_photo(media_path: Path, width: int, height: int) -> Image.Image:
-    """Load a photo (HEIC ok) and crop it to fully cover the canvas."""
-    img, temp = load_rgb_image(media_path)
-    scale = max(width / img.width, height / img.height)
-    new_w = max(1, int(img.width * scale))
-    new_h = max(1, int(img.height * scale))
-    resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
-    left = (new_w - width) // 2
-    top = (new_h - height) // 2
-    cropped = resized.crop((left, top, left + width, top + height))
-    if temp is not None:
-        temp.unlink(missing_ok=True)
-    return cropped
+def _build_background(media_path: Path):
+    """COVER fit: scale the photo to fill 1080x1920, then center-crop.
 
-
-def _apply_scrim(photo: Image.Image) -> Image.Image:
-    """Darken top and bottom with the token gradient so text stays legible."""
-    tokens = load_tokens()
-    overlay = tokens["background"]["overlay"]
-    stops = overlay["stops"]
-    width, height = photo.size
-
-    gradient = Image.new("L", (1, height), 0)
-    for y in range(height):
-        pos = y / (height - 1)
-        for i in range(len(stops) - 1):
-            a, b = stops[i], stops[i + 1]
-            if a["position"] <= pos <= b["position"]:
-                t = (pos - a["position"]) / (
-                    b["position"] - a["position"] + 1e-9
-                )
-                opacity = a["opacity"] + t * (b["opacity"] - a["opacity"])
-                break
-        else:
-            opacity = stops[-1]["opacity"]
-        gradient.putpixel((0, y), int(opacity * 255))
-
-    gradient = gradient.resize((width, height))
-    scrim = Image.new("RGBA", (width, height), _hex_to_rgba(overlay["color"]))
-    scrim.putalpha(gradient)
-    return Image.alpha_composite(photo.convert("RGBA"), scrim)
-
-
-def _background(media_path: Path) -> Image.Image:
+    Sharp edges. No blur fill and no feathered photo edges.
+    """
     tokens = load_tokens()
     width = tokens["canvas"]["width"]
     height = tokens["canvas"]["height"]
-    return _apply_scrim(_cover_photo(media_path, width, height))
+
+    photo, temp = load_rgb_image(media_path)
+    try:
+        scale = max(width / photo.width, height / photo.height)
+        new_w = max(1, int(photo.width * scale))
+        new_h = max(1, int(photo.height * scale))
+        resized = photo.resize((new_w, new_h), Image.Resampling.LANCZOS)
+        left = (new_w - width) // 2
+        top = (new_h - height) // 2
+        cropped = resized.crop((left, top, left + width, top + height))
+        return cropped.convert("RGBA"), (0, 0, width, height)
+    finally:
+        if temp is not None:
+            temp.unlink(missing_ok=True)
 
 
-def _text_shadow(overlay: Image.Image) -> Image.Image:
-    """Black gaussian shadow from the overlay's alpha channel."""
-    spec = load_tokens()["text_shadow"]
-    alpha = overlay.getchannel("A")
-    opacity = int(round(spec["opacity"] * 255))
-    faded = alpha.point(lambda p: int(p * opacity / 255))
-    black = Image.new("L", overlay.size, 0)
-    shadow = Image.merge("RGBA", (black, black, black, faded))
-    shifted = Image.new("RGBA", overlay.size, (0, 0, 0, 0))
-    shifted.paste(shadow, (spec["offset"], spec["offset"]))
-    blur = spec["blur"]
-    if blur:
-        shifted = shifted.filter(ImageFilter.GaussianBlur(blur))
-    return shifted
+def _apply_vignette(canvas: Image.Image, box: tuple) -> Image.Image:
+    """Soft dark ellipse behind the text, centered on the visible photo."""
+    tokens = load_tokens()
+    v = tokens["background"]["vignette"]
+    width = tokens["canvas"]["width"]
+    height = tokens["canvas"]["height"]
+    px, py, cw, ch = box
+    cx, cy = px + cw / 2, py + ch / 2
+    mask = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(mask)
+    rw = cw * v["width_pct_of_photo"]
+    rh = ch * v["height_pct_of_photo"]
+    draw.ellipse(
+        [cx - rw / 2, cy - rh / 2, cx + rw / 2, cy + rh / 2],
+        fill=int(255 * v["opacity"]),
+    )
+    mask = mask.filter(ImageFilter.GaussianBlur(v["blur_radius_px"]))
+    dark = Image.new("RGBA", (width, height), _color(v["color"]) + (255,))
+    dark.putalpha(mask)
+    return Image.alpha_composite(canvas, dark)
 
 
-def _composite_text(base: Image.Image, overlay: Image.Image) -> Image.Image:
-    """Lay shadow + type on top of the photo."""
-    out = Image.alpha_composite(base.convert("RGBA"), _text_shadow(overlay))
-    return Image.alpha_composite(out, overlay)
+def _rounded_rect_mask(
+    size: tuple[int, int], radius: int, inset: int = 0
+) -> Image.Image:
+    """Opaque rounded rectangle, optionally inset, as an L mask."""
+    width, height = size
+    mask = Image.new("L", size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [inset, inset, width - 1 - inset, height - 1 - inset],
+        radius=max(1, radius - inset),
+        fill=255,
+    )
+    return mask
 
 
-# --------------------------------------------------------------- components
-def _swipe_arrow(draw, cx: float, cy: float, col, scale: float = 1.0) -> None:
-    """Minimal chevron pointing right, next to the footer label."""
-    s = 14 * scale
-    lw = max(2, int(3 * scale))
-    draw.line([(cx - s, cy - s), (cx + s * 0.4, cy)], fill=col, width=lw)
-    draw.line([(cx + s * 0.4, cy), (cx - s, cy + s)], fill=col, width=lw)
+def _apply_liquid_glass(canvas: Image.Image, box: tuple) -> Image.Image:
+    """Even clear glass card behind body text. Cover slides do not use this."""
+    card = load_tokens()["body_card"]
+    left, top, right, bottom = (int(round(value)) for value in box)
+    margin = 8
+    left = max(margin, left)
+    top = max(margin, top)
+    right = min(canvas.width - margin, right)
+    bottom = min(canvas.height - margin, bottom)
+    width = right - left
+    height = bottom - top
+    if width < 16 or height < 16:
+        return canvas
 
+    radius = min(int(card["radius_px"]), width // 3, height // 2)
 
-def _page_dots(draw, cx: float, cy: float, total: int, active: int) -> None:
-    """Row of page dots; the active one is gold."""
-    tokens = load_tokens()["components"]["page_dots"]
-    radius = tokens["radius"]
-    gap = tokens["gap"]
-    x0 = cx - (total - 1) * gap / 2
-    for i in range(total):
-        x = x0 + i * gap
-        fill = _color("dot_active") if i == active else _color("dot_inactive")
-        draw.ellipse([x - radius, cy - radius, x + radius, cy + radius], fill=fill)
+    shadow = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle(
+        [
+            left + 4,
+            top + int(card["lift_shadow_offset_y_px"]),
+            right - 4,
+            bottom + 10,
+        ],
+        radius=radius,
+        fill=(0, 0, 0, int(card["lift_shadow_opacity"])),
+    )
+    shadow = shadow.filter(ImageFilter.GaussianBlur(int(card["lift_shadow_blur_px"])))
+    canvas = Image.alpha_composite(canvas, shadow)
 
+    magnify = float(card["lens_magnify"])
+    center_x = (left + right) / 2
+    center_y = (top + bottom) / 2
+    sample_w = width / magnify
+    sample_h = height / magnify
+    sample_left = max(0, int(center_x - sample_w / 2))
+    sample_top = max(0, int(center_y - sample_h / 2))
+    sample_right = min(canvas.width, int(center_x + sample_w / 2))
+    sample_bottom = min(canvas.height, int(center_y + sample_h / 2))
+    glass = (
+        canvas.crop((sample_left, sample_top, sample_right, sample_bottom))
+        .resize((width, height), Image.Resampling.LANCZOS)
+        .filter(ImageFilter.GaussianBlur(int(card["backdrop_blur_px"])))
+    )
+    glass = ImageEnhance.Color(glass).enhance(float(card["color_enhance"]))
+    glass = ImageEnhance.Contrast(glass).enhance(float(card["contrast_enhance"]))
 
-# ------------------------------------------------------------- title layout
-def _accent_key(word: str) -> str:
-    return word.lower().strip(".,!?'\"")
+    mask = _rounded_rect_mask((width, height), radius)
+    wash = Image.new(
+        "RGBA", (width, height), (255, 255, 255, int(card["fill_alpha"]))
+    )
+    glass = Image.alpha_composite(glass, wash)
 
+    rim_width = max(1, int(card["rim_width_px"]))
+    ring = ImageChops.subtract(
+        mask,
+        _rounded_rect_mask((width, height), radius, rim_width),
+    )
+    rim = Image.new("RGBA", (width, height), (255, 255, 255, 0))
+    rim.putalpha(
+        ring.point(lambda p: int(p * int(card["rim_alpha"]) / 255))
+    )
+    glass = Image.alpha_composite(glass, rim)
 
-def pick_accent_word(words: list[str]) -> int:
-    """Index of the ONE title word to render in the gold italic accent.
-
-    Prefers a short connector word (in/my/the/...); skips tiny ones
-    (i/a/an). Otherwise the shortest word with 3+ letters.
-    The wording never changes — only the styling.
-    """
-    for i, word in enumerate(words):
-        key = _accent_key(word)
-        if key in CONNECTOR_WORDS and key not in WEAK_ACCENT_WORDS:
-            return i
-    long_enough = [
-        i for i, word in enumerate(words) if len(_accent_key(word)) >= 3
-    ]
-    pool = long_enough or list(range(len(words)))
-    return min(pool, key=lambda i: len(_accent_key(words[i])))
-
-
-def _title_word_width(draw, word: str, accent: bool, fonts: dict) -> float:
-    if accent:
-        return _text_w(draw, word.lower(), fonts["accent"])
-    return _text_w(draw, word.upper(), fonts["title"], fonts["tracking"])
-
-
-def _layout_title(draw, headline: str, fonts: dict, max_width: float):
-    """Split the title into wrapped lines of (word, is_accent) pairs."""
-    paragraphs = [p for p in headline.split("\n") if p.strip()]
-    all_words = [w for p in paragraphs for w in p.split()]
-    accent_index = pick_accent_word(all_words)
-
-    lines: list[list[tuple[str, bool]]] = []
-    word_index = 0
-    for paragraph in paragraphs:
-        current: list[tuple[str, bool]] = []
-        current_width = 0.0
-        for word in paragraph.split():
-            accent = word_index == accent_index
-            word_index += 1
-            width = _title_word_width(draw, word, accent, fonts)
-            trial = current_width + (fonts["space"] if current else 0) + width
-            if current and trial > max_width:
-                lines.append(current)
-                current = [(word, accent)]
-                current_width = width
-            else:
-                current.append((word, accent))
-                current_width = trial
-        if current:
-            lines.append(current)
-    return lines
+    glass.putalpha(ImageChops.multiply(glass.split()[-1], mask))
+    card_layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    card_layer.paste(glass, (left, top), glass)
+    return Image.alpha_composite(canvas, card_layer)
 
 
 # ----------------------------------------------------------------- renders
+
 def render_cover(
     text: str,
-    eyebrow: str | None,
     media_path: Path,
     out_path: Path,
 ) -> Path:
-    """Render slide 1: optional eyebrow, title with accent word, subtitle."""
+    """Render slide 1: yellow uppercase headline + italic subline."""
     tokens = load_tokens()
-    width = tokens["canvas"]["width"]
-    height = tokens["canvas"]["height"]
-    margin = tokens["safe_margins"]["left"]
-    layout = tokens["slide_layouts"]["poster_thumbnail"]
-
-    img = _background(media_path)
-    overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-
-    if eyebrow:
-        eb = tokens["type_styles"]["eyebrow"]
-        _draw_tracked(
-            draw, (0, layout["eyebrow_y"]), eyebrow.upper(),
-            _style_font("eyebrow"), _color(eb["color"]),
-            tracking=eb["letter_spacing"], center_x=width / 2,
-        )
-        dl = tokens["type_styles"]["divider_line"]
-        draw.line(
-            [
-                (width / 2 - dl["width"] / 2, layout["divider_y"]),
-                (width / 2 + dl["width"] / 2, layout["divider_y"]),
-            ],
-            fill=_color(dl["color"]),
-            width=dl["thickness"],
-        )
+    canvas, box = _build_background(media_path)
+    canvas = _apply_vignette(canvas, box)
+    draw = ImageDraw.Draw(canvas)
+    px, py, cw, ch = box
+    cx, cy = px + cw / 2, py + ch / 2
 
     headline, subline = split_dual_text(text)
     if not headline:
         raise PipelineError(f"Empty thumbnail text: {text!r}")
 
-    t_style = tokens["type_styles"]["title"]
-    a_style = t_style["accent_word"]
-    title_font = _style_font("title")
-    accent_font = _font(
-        a_style["font"], a_style.get("weight", 400), True, a_style["size"]
+    b_style = tokens["type_styles"]["headline_bold"]
+    i_style = tokens["type_styles"]["headline_italic"]
+    b_font = _style_font("headline_bold")
+    i_font = _style_font("headline_italic")
+
+    b_lines = _wrap(
+        draw, headline.upper(), b_font,
+        cw * b_style["max_width_pct_of_photo"],
+        b_style["letter_spacing"],
     )
-    fonts = {
-        "title": title_font,
-        "accent": accent_font,
-        "tracking": t_style["letter_spacing"],
-        "space": title_font.getlength(" ") + t_style["letter_spacing"],
-    }
+    _check_max_lines(b_lines, b_style["max_lines"], "Thumbnail headline")
 
-    title_lines = _layout_title(draw, headline, fonts, width - 2 * margin)
-    _check_max_lines(title_lines, t_style["max_lines"], "Thumbnail headline")
-
-    line_height = t_style["line_height"]
-    y = layout["title_block_center_y"] - len(title_lines) * line_height / 2
-    for line in title_lines:
-        widths = [
-            _title_word_width(draw, word, accent, fonts)
-            for word, accent in line
-        ]
-        total = sum(widths) + fonts["space"] * (len(line) - 1)
-        x = width / 2 - total / 2
-        for (word, accent), word_width in zip(line, widths):
-            if accent:
-                draw.text(
-                    (x, y + ACCENT_BASELINE_OFFSET),
-                    word.lower(),
-                    font=accent_font,
-                    fill=_color(a_style["color"]),
-                )
-            else:
-                _draw_tracked(
-                    draw, (x, y), word.upper(), title_font,
-                    _color(t_style["color"]), tracking=fonts["tracking"],
-                )
-            x += word_width + fonts["space"]
-        y += line_height
-
+    i_lines: list[str] = []
     if subline:
-        sub = tokens["type_styles"]["subtitle"]
-        sub_font = _style_font("subtitle")
-        sub_lines = _wrap(draw, subline, sub_font, width * sub["max_width_pct"])
+        i_lines = _wrap(
+            draw, subline, i_font,
+            cw * i_style["max_width_pct_of_photo"],
+        )
+        _check_max_lines(i_lines, i_style["max_lines"], "Thumbnail subline")
+
+    total_h = len(b_lines) * b_style["line_height"]
+    if i_lines:
+        total_h += i_style["gap_after_bold_px"] + len(i_lines) * i_style["line_height"]
+
+    y = cy - total_h / 2
+    y = _centered_multiline(
+        draw, b_lines, b_font, cx, y, _color(b_style["color"]),
+        b_style["line_height"], b_style["letter_spacing"],
+    )
+    if i_lines:
+        y = (
+            cy - total_h / 2
+            + len(b_lines) * b_style["line_height"]
+            + i_style["gap_after_bold_px"]
+        )
         _centered_multiline(
-            draw, sub_lines, sub_font, width / 2,
-            y + layout["subtitle_gap_after_title"] - line_height,
-            _color(sub["color"]), sub["line_height"],
+            draw, i_lines, i_font, cx, y, _color(i_style["color"]),
+            i_style["line_height"],
         )
 
-    fl = tokens["type_styles"]["footer_label"]
-    footer_y = height - layout["footer_y_from_bottom"]
-    label = FOOTER_LABEL.upper()
-    footer_font = _style_font("footer_label")
-    label_width = _text_w(draw, label, footer_font, fl["letter_spacing"])
-    _draw_tracked(
-        draw, (0, footer_y), label, footer_font, _color(fl["color"]),
-        tracking=fl["letter_spacing"], center_x=width / 2 - 30,
-    )
-    _swipe_arrow(
-        draw, width / 2 + label_width / 2 + 10, footer_y + 14,
-        _color(fl["color"]),
-    )
-
-    _composite_text(img, overlay).convert("RGB").save(out_path, quality=92)
+    canvas.convert("RGB").save(out_path, quality=92)
     return out_path
 
 
 def render_content_slide(
     text: str,
-    position: int,
-    total: int,
     media_path: Path,
     out_path: Path,
 ) -> Path:
-    """Render body slide N: index number, heading, body text, page dots.
-
-    Args:
-        text: Scene text, optionally 'heading | body'.
-        position: 0-based index among body slides (drives 01, 02, ...).
-        total: Number of body slides. Page dots also count the cover,
-            so the gold dot matches the Instagram pager.
-    """
+    """Render a body slide: one centered paragraph on a liquid-glass card."""
     tokens = load_tokens()
-    width = tokens["canvas"]["width"]
-    height = tokens["canvas"]["height"]
-    margin = tokens["safe_margins"]["left"]
-    layout = tokens["slide_layouts"]["content_slide"]
+    canvas, box = _build_background(media_path)
+    draw = ImageDraw.Draw(canvas)
+    px, py, cw, ch = box
+    cx, cy = px + cw / 2, py + ch / 2
 
-    img = _background(media_path)
-    overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-
-    heading, body = split_dual_text(text)
-    if not heading:
+    body = _join_dual(text)
+    if not body:
         raise PipelineError(f"Empty slide text: {text!r}")
 
-    idx = tokens["type_styles"]["index_number"]
-    index_font = _style_font("index_number")
-    _draw_tracked(
-        draw, (0, layout["index_number_y"]), f"{position + 1:02d}",
-        index_font, _color(idx["color"]),
-        tracking=2, center_x=width / 2,
+    style = tokens["type_styles"]["body_text"]
+    fnt = _style_font("body_text")
+    lines = _wrap(draw, body, fnt, cw * style["max_width_pct_of_photo"])
+    _check_max_lines(lines, style["max_lines"], "Slide body")
+    total_h = len(lines) * style["line_height"]
+    y = cy - total_h / 2
+    block_w = max(_text_w(draw, line, fnt) for line in lines)
+
+    card = tokens["body_card"]
+    canvas = _apply_liquid_glass(
+        canvas,
+        (
+            cx - block_w / 2 - card["padding_x_px"],
+            y - card["padding_y_px"],
+            cx + block_w / 2 + card["padding_x_px"],
+            y + total_h + card["padding_y_px"],
+        ),
     )
 
-    head = tokens["type_styles"]["content_heading"]
-    head_font = _style_font("content_heading")
-    head_width = width - 2 * margin
-    head_lines = _wrap(draw, heading, head_font, head_width)
-    _check_max_lines(head_lines, head["max_lines"], "Slide heading")
-    heading_y = (
-        layout["index_number_y"]
-        + idx["size"]
-        + layout["gap_after_index"]
+    shadow_layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    _centered_multiline(
+        ImageDraw.Draw(shadow_layer),
+        lines,
+        fnt,
+        cx + card["text_shadow_offset_x_px"],
+        y + card["text_shadow_offset_y_px"],
+        (0, 0, 0, int(card["text_shadow_opacity"])),
+        style["line_height"],
     )
-    y = _centered_multiline(
-        draw, head_lines, head_font, width / 2, heading_y,
-        _color(head["color"]), head["line_height"],
+    canvas = Image.alpha_composite(
+        canvas,
+        shadow_layer.filter(
+            ImageFilter.GaussianBlur(int(card["text_shadow_blur_px"]))
+        ),
     )
-
-    if body:
-        body_style = tokens["type_styles"]["body_text"]
-        body_font = _style_font("body_text")
-        body_width = width * body_style["max_width_pct"]
-        body_lines = _wrap(draw, body, body_font, body_width)
-        _check_max_lines(body_lines, body_style["max_lines"], "Slide body")
-        _centered_multiline(
-            draw, body_lines, body_font, width / 2,
-            y + layout["gap_after_heading"],
-            _color(body_style["color"]), body_style["line_height"],
-        )
-
-    # Cover is Instagram slide 1 (SWIPE, no dots). Dots include it so
-    # the gold dot matches the app pager.
-    _page_dots(
-        draw, width / 2, height - layout["dots_y_from_bottom"],
-        total + 1, position + 1,
+    draw = ImageDraw.Draw(canvas)
+    _centered_multiline(
+        draw, lines, fnt, cx, y, _color(style["color"]), style["line_height"]
     )
 
-    _composite_text(img, overlay).convert("RGB").save(out_path, quality=92)
+    canvas.convert("RGB").save(out_path, quality=92)
     return out_path

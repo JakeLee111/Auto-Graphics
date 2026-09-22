@@ -4,8 +4,8 @@ Protocol:
   First line: /video or /carousel (defaults to /video if omitted)
   Video optional: hook: Your hook text | optional subline
   Carousel: thumbnail: Your title | optional subline  (always slide 1)
-  Carousel optional: eyebrow: Small label above the cover title
-  Body: text [photos/category] or [videos/category]
+  Body: full sentences [photos/category] or [videos/category]
+  Carousel body: no |. Use \\n for a new visual line.
 
 See docs/message-protocol.md.
 """
@@ -25,7 +25,6 @@ MODE_PATTERN = re.compile(
 # Optional spaces around the colon; fullwidth colon is normalized first.
 HOOK_PREFIX = re.compile(r"^hook\s*:\s*(.+)$", re.IGNORECASE)
 THUMBNAIL_PREFIX = re.compile(r"^thumbnail\s*:\s*(.+)$", re.IGNORECASE)
-EYEBROW_PREFIX = re.compile(r"^eyebrow\s*:\s*(.+)$", re.IGNORECASE)
 
 THUMBNAIL_LIBRARY = config.THUMBNAIL_LIBRARY
 _INVISIBLE = "\ufeff\u200b\u200c\u200d"
@@ -114,7 +113,6 @@ def parse_script(
     mode_explicit = False
     hook_text: str | None = None
     thumbnail_text: str | None = None
-    eyebrow_text: str | None = None
     body: list[Scene] = []
     body_index = 0
     saw_content = False
@@ -147,23 +145,6 @@ def parse_script(
                 raise PipelineError("Only one thumbnail: line is allowed.")
             thumbnail_text = _plain_overlay_text(
                 thumb_match.group(1), line_number, "thumbnail"
-            )
-            saw_content = True
-            continue
-
-        eyebrow_match = EYEBROW_PREFIX.match(line)
-        if eyebrow_match:
-            if mode != "carousel":
-                if not mode_explicit and hook_text is None:
-                    mode = "carousel"
-                else:
-                    raise PipelineError(
-                        "eyebrow: is only for /carousel mode."
-                    )
-            if eyebrow_text is not None:
-                raise PipelineError("Only one eyebrow: line is allowed.")
-            eyebrow_text = _plain_overlay_text(
-                eyebrow_match.group(1), line_number, "eyebrow"
             )
             saw_content = True
             continue
@@ -222,5 +203,4 @@ def parse_script(
         hook_text=hook_text,
         thumbnail_text=thumbnail_text,
         body=body,
-        eyebrow_text=eyebrow_text,
     )

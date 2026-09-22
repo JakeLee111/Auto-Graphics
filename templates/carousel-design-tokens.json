@@ -1,130 +1,105 @@
 {
-  "template_name": "Minimal Mono Chic (T3)",
-  "canvas": { "width": 1080, "height": 1920, "unit": "px", "aspect_ratio": "9:16" },
-  "safe_margins": { "top": 120, "bottom": 120, "left": 96, "right": 96 },
+  "template_name": "Template B — Classic Magazine (colorful photo bg)",
+  "canvas": {
+    "width": 1080, "height": 1920, "unit": "px", "aspect_ratio": "9:16",
+    "note": "True TikTok full-bleed size. Every slide in the carousel must be exported at exactly this size."
+  },
 
   "fonts": {
     "primary": {
       "family": "Outfit",
       "source": "Google Fonts (free)",
       "url": "https://fonts.google.com/specimen/Outfit",
-      "files_needed": ["Outfit-Regular.ttf", "Outfit-Bold.ttf"]
+      "files_needed": ["Outfit-Regular.ttf", "Outfit-Bold.ttf"],
+      "role": "Bold = the yellow headline word/phrase on the thumbnail. Regular = all body/paragraph text on content slides."
     },
     "accent": {
-      "family": "Instrument Serif",
+      "family": "Crimson Pro",
       "style": "italic",
       "source": "Google Fonts (free)",
-      "url": "https://fonts.google.com/specimen/Instrument+Serif",
-      "files_needed": ["InstrumentSerif-Italic.ttf"]
+      "url": "https://fonts.google.com/specimen/Crimson+Pro",
+      "files_needed": ["CrimsonPro-Italic.ttf"],
+      "role": "The second line of the thumbnail only — the softer, human, non-yellow line."
     },
-    "rule": "Only these two font families are ever used, in only these two roles. Primary = structure/body/caps. Accent italic = the one emotional/connector word + numbering. Never substitute or add a third font."
+    "rule": "Exactly two font families, three weights total (Outfit Regular, Outfit Bold, Crimson Pro Italic). Never add a third font."
   },
 
   "colors": {
-    "ink_light": "#F7F4EF",
-    "accent_gold": "#C4A87A",
-    "body_muted": "#E4E0D8",
-    "fallback_bg": "#111111",
-    "dot_active": "#C4A87A",
-    "dot_inactive": "#FFFFFFAA"
+    "accent_yellow": "#F5C242",
+    "ink_white": "#FAF8F4",
+    "scrim_black": "#0A0806",
+    "note": "accent_yellow is used ONLY on the bold headline text. Everything else text-wise is ink_white. scrim_black is only used at low opacity for the cover vignette, never as a solid decorative shape."
   },
 
   "background": {
-    "type": "user_photo",
-    "fit": "cover",
-    "note": "Photo fills the full 1080x1920 TikTok canvas, cropped to cover (no letterboxing).",
-    "overlay": {
-      "purpose": "Keeps text legible on ANY photo. This is what makes the template 'work' with arbitrary backgrounds — do not skip it.",
-      "type": "vertical_gradient_scrim",
-      "direction": "top_to_bottom",
-      "stops": [
-        { "position": 0.0,  "opacity": 0.64 },
-        { "position": 0.42, "opacity": 0.42 },
-        { "position": 0.58, "opacity": 0.12 },
-        { "position": 0.80, "opacity": 0.38 },
-        { "position": 1.0,  "opacity": 0.68 }
-      ],
-      "color": "#000000",
-      "note": "Dark through the top ~40% (where heading + body sit), then opens so the photo still reads, then darkens again for dots/SWIPE."
+    "source": "user_photo",
+    "fit_mode": "cover",
+    "fit_definition": "Scale the photo to fill the 1080x1920 canvas (larger of width/height ratio), then center-crop. Sharp edges. No blur fill, no feathered photo edges.",
+    "vignette": {
+      "purpose": "Cover/thumbnail only. A soft, heavily-blurred dark ellipse sits behind the headline so yellow/white type stays readable.",
+      "shape": "ellipse, width ~95% of canvas width, height ~46% of canvas height",
+      "width_pct_of_photo": 0.95,
+      "height_pct_of_photo": 0.46,
+      "blur_radius_px": 120,
+      "opacity": 0.55,
+      "color": "scrim_black"
     }
   },
 
   "type_styles": {
-    "eyebrow": {
-      "font": "Outfit", "weight": 700, "size": 24, "letter_spacing": 6,
-      "color": "accent_gold", "case": "uppercase", "align": "center"
+    "headline_bold": {
+      "font": "Outfit", "weight": 700, "size": 100, "line_height": 112,
+      "letter_spacing": 2, "color": "accent_yellow", "case": "uppercase", "align": "center",
+      "max_width_pct_of_photo": 0.84, "max_lines": 3
     },
-    "divider_line": { "width": 56, "thickness": 2, "color": "accent_gold" },
-    "title": {
-      "font": "Outfit", "weight": 700, "size": 78, "line_height": 100,
-      "letter_spacing": 1, "color": "ink_light", "case": "uppercase", "align": "center",
-      "max_lines": 3,
-      "accent_word": {
-        "font": "Instrument Serif", "style": "italic", "weight": 400,
-        "size": 92, "color": "accent_gold", "case": "lowercase",
-        "rule": "Exactly ONE short word in the title (a connector like 'in/my/the' or the single emotional keyword) renders in this style. Skip 1–2 letter connectors (i/a/an). It sits inline with the surrounding uppercase words, baseline-aligned, slightly larger."
-      }
-    },
-    "subtitle": {
-      "font": "Outfit", "weight": 400, "size": 32, "line_height": 44,
-      "color": "body_muted", "align": "center", "max_width_pct": 0.80
-    },
-    "footer_label": {
-      "font": "Outfit", "weight": 700, "size": 24, "letter_spacing": 5,
-      "color": "ink_light", "case": "uppercase", "align": "center"
-    },
-    "index_number": {
-      "font": "Instrument Serif", "style": "italic", "size": 64,
-      "color": "accent_gold", "align": "center", "format": "01, 02, 03..."
-    },
-    "content_heading": {
-      "font": "Outfit", "weight": 700, "size": 50, "line_height": 62,
-      "color": "ink_light", "align": "center", "max_lines": 2
+    "headline_italic": {
+      "font": "Crimson Pro", "style": "italic", "weight": 400, "size": 72, "line_height": 88,
+      "color": "ink_white", "case": "sentence", "align": "center",
+      "max_width_pct_of_photo": 0.78,
+      "gap_after_bold_px": 30, "max_lines": 2
     },
     "body_text": {
-      "font": "Outfit", "weight": 400, "size": 38, "line_height": 56,
-      "color": "body_muted", "align": "center", "max_width_pct": 0.75, "max_lines": 4
+      "font": "Outfit", "weight": 400, "size": 46, "line_height": 62,
+      "color": "ink_white", "align": "center", "max_width_pct_of_photo": 0.78,
+      "max_lines": 6
     }
   },
 
-  "components": {
-    "swipe_arrow": {
-      "style": "minimal_chevron", "stroke_width": 3, "color": "ink_light",
-      "position": "inline_right_of_footer_label"
-    },
-    "page_dots": {
-      "radius": 5, "gap": 18, "position": "bottom_center", "y_from_bottom": 140
-    }
+  "body_card": {
+    "kind": "liquid_glass",
+    "purpose": "Body slides only — not the thumbnail. Even clear glass around the paragraph (photo shows through, thin even rim, no wet highlight).",
+    "padding_x_px": 68,
+    "padding_y_px": 54,
+    "radius_px": 52,
+    "lens_magnify": 1.05,
+    "backdrop_blur_px": 5,
+    "color_enhance": 1.28,
+    "contrast_enhance": 1.08,
+    "fill_alpha": 36,
+    "lift_shadow_opacity": 50,
+    "lift_shadow_blur_px": 16,
+    "lift_shadow_offset_y_px": 12,
+    "rim_width_px": 2,
+    "rim_alpha": 140,
+    "text_shadow_opacity": 120,
+    "text_shadow_blur_px": 3,
+    "text_shadow_offset_x_px": 1,
+    "text_shadow_offset_y_px": 2
   },
 
-  "text_shadow": {
-    "offset": 2,
-    "blur": 8,
-    "opacity": 0.78,
-    "note": "Soft black shadow under every overlay mark (type, dots, SWIPE) so copy stays readable on light photos."
+  "layout_rules": {
+    "everything_centered": "Both the headline block (poster slide) and the body text (content slides) are vertically AND horizontally centered on the 1080x1920 canvas.",
+    "no_decor": "No eyebrow/label text, no divider lines, no page-number index, no swipe arrow/CTA text, no page dots. Cover: full-bleed photo, vignette, centered headline. Body: full-bleed photo, liquid-glass card, centered paragraph."
   },
 
-  "slide_layouts": {
+  "slide_types": {
     "poster_thumbnail": {
-      "order": ["eyebrow", "divider_line", "title", "subtitle", "footer_label+swipe_arrow"],
-      "eyebrow_y": 200,
-      "divider_y": 266,
-      "title_block_center_y": 640,
-      "subtitle_gap_after_title": 140,
-      "footer_y_from_bottom": 160
+      "elements": ["headline_bold (1-3 lines)", "headline_italic (1-2 lines)"],
+      "stacking": "bold block first, then italic block directly below with gap_after_bold_px, whole stack vertically centered as one unit"
     },
     "content_slide": {
-      "order": ["index_number", "content_heading", "body_text", "page_dots"],
-      "index_number_y": 160,
-      "gap_after_index": 20,
-      "gap_after_heading": 28,
-      "dots_y_from_bottom": 140
+      "elements": ["liquid-glass card", "body_text (1 short paragraph, 1-6 lines)"],
+      "stacking": "glass card sized to the paragraph, then text on top, whole stack vertically centered"
     }
-  },
-
-  "text_rules": {
-    "numbering_format": "01, 02, 03... in Instrument Serif Italic",
-    "title_accent_word": "exactly one word per title in the gold italic accent",
-    "tone": "short, punchy, lowercase body copy; uppercase only for eyebrow/title/footer"
   }
 }

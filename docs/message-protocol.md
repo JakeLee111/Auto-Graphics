@@ -35,20 +35,20 @@ Carousel cover always uses `photos/thumbnails/` via the `thumbnail:` line (no ta
 1. First line: `/video` or `/carousel`.
 2. **Video:** optional `hook: text | subline` (no library tag) → 3s intro from all videos.
 3. **Carousel:** required `thumbnail: text | subline` (no library tag) → **always slide 1** from `photos/thumbnails/`.
-4. **Carousel:** optional `eyebrow: small label` (no library tag) → tiny gold label above the cover title. Omit it and the cover has no label.
-5. Then body lines with `[photos/...]` or `[videos/...]`.
-6. `/carousel` body lines must use `[photos/...]`.
-7. One script line = one slide. Use `\n` inside headline or subline text to force a new visual line on the same slide (e.g. numbered lists).
-8. **Carousel `|`:** `thumbnail:` and every body line must be `short heading | rest of that sentence`. Left = heading (max 2 lines). Right = body (max 4 lines). No `|` means the whole line is the heading and will fail if it wraps past 2 lines.
+4. Then body lines with `[photos/...]` or `[videos/...]`.
+5. `/carousel` body lines must use `[photos/...]`.
+6. One script line = one slide. Cover is `thumbnail:` only (first beat). Body: group 2–3 related sentences on one line when they are the same idea. Use `\n` between those sentences, and inside text to wrap (e.g. lists). New slide on a topic shift.
+7. **Carousel `|` is cover-only.** `thumbnail: left | right` → yellow uppercase headline + white italic subline. Body slides: full sentences, no `|`. `\n` = new visual line. Body max 6 lines.
 
-### Carousel design (Minimal Mono Chic)
+### Carousel design (Classic Magazine)
 
 Carousel slides render at 1080×1920 (9:16, full TikTok frame) from `templates/carousel-design-tokens.json`:
 
-- **Cover (slide 1):** eyebrow (if given) + big uppercase title with **one** word auto-styled in gold italic + subtitle (text after `|`) + SWIPE footer.
-- **Body slides:** auto-numbered `01, 02, ...` + heading (text before `|`) + body (text after `|`) + page dots.
-- Numbering, the accent word, and page dots are generated — never write them in the script.
-- Design limits: title max 3 lines, heading max 2, body max 4. Too-long text fails with a clear error.
+- **Cover (slide 1):** yellow Outfit Bold headline (text before `|`) + Crimson Pro italic subline (text after `|`). Centered on the photo. A dark vignette sits behind the headline.
+- **Body slides:** one Outfit Regular paragraph, centered on a clear liquid-glass card. No vignette.
+- Photos fill the 1080×1920 frame (cover-fit, sharp edges).
+- No labels, numbers, page dots, or SWIPE — never write those into the script.
+- Design limits: cover headline max 3 lines, italic max 2, body max 6. Too-long text fails with a clear error.
 
 ### Video example
 
@@ -63,20 +63,17 @@ Follow for the tools I used [videos/coding]
 
 ```text
 /carousel
-eyebrow: my journey
 thumbnail: 4 weeks recap | of my journey
-Desk setup | that actually works [photos/lifestyle]
-This GitHub demo | of what I built [photos/projects]
+Desk setup that actually works.\nTools I used every day. [photos/lifestyle]
+This GitHub demo of what I built. [photos/projects]
 ```
-
-`eyebrow:` is optional — leave it out for a cover with no label.
 
 ### Forced line breaks (same slide)
 
 ```text
 /carousel
 thumbnail: AI & SWE project ideas | 3 builds you can finish
-Project 1: RAG Q&A | 1. Load PDFs\n2. Chunk by section\n3. Retrieve top chunks\n4. Answer from context [photos/projects]
+Project 1: RAG Q&A.\n1. Load PDFs\n2. Chunk by section\n3. Retrieve top chunks [photos/projects]
 ```
 
 - Slide 1 = random photo from `library/photos/thumbnails/` + thumbnail text  
@@ -87,9 +84,10 @@ Project 1: RAG Q&A | 1. Load PDFs\n2. Chunk by section\n3. Retrieve top chunks\n
 
 - **Carousel needs a thumbnail:** — add `thumbnail: your title` before body slides.
 - **No photos in photos/thumbnails** — add `.jpg/.png/.heic` files there.
-- **hook: / thumbnail: / eyebrow: has no library tag** — correct; do not put `[...]` on those lines.
-- **Headline/heading/body too long** — carousel caps lines (title 3, heading 2, body 4). Split with `|` so the left side is a short clause; do not rewrite the words.
-- **Slide heading is too long (4 lines, max 2)** — the body line had no `|`, so the whole sentence became the heading. Add `clause | rest`.
-- **Font file not found (Outfit / Instrument Serif)** — copy `Outfit-Regular.ttf`, `Outfit-Bold.ttf`, `InstrumentSerif-Italic.ttf` into `fonts/`.
+- **hook: / thumbnail: has no library tag** — correct; do not put `[...]` on those lines.
+- **Headline/body too long** — carousel caps lines (cover headline 3, italic 2, body 6). On the cover, split with `|` so the left side is a short clause. On body slides, split into another slide or add `\n` — do not rewrite the words. Do not use `|` on body slides.
+- **Font file not found (Outfit / Crimson Pro)** — copy `Outfit-Regular.ttf`, `Outfit-Bold.ttf`, `CrimsonPro-Italic.ttf` into `fonts/`.
 - **Want numbers on separate lines** — write `\n` between them on the same script line; do not press Enter (that starts a new slide).
+- **Body slides too short / too many** — group 2–3 related sentences on one line with `\n` between them. Cover stays `thumbnail:` only.
+- **`|` on a body slide** — not a new line. Cover only. Write the full sentence; use `\n` for a break.
 - **Unknown library** — photos: `lifestyle`, `projects` (+ `thumbnails` for cover). Videos: `lifestyle`, `coding`, `projects`, `working-space`.

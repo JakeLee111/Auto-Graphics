@@ -66,7 +66,7 @@ def _render_video(
 
 
 def _render_carousel(parsed: ParsedScript) -> RenderResult:
-    """Render Minimal Mono Chic slides (design from carousel-design-tokens.json)."""
+    """Render Classic Magazine slides (design from carousel-design-tokens.json)."""
     config.EXPORTS_DIR.mkdir(exist_ok=True)
 
     from datetime import datetime
@@ -81,19 +81,15 @@ def _render_carousel(parsed: ParsedScript) -> RenderResult:
     slides.append(
         render_cover(
             parsed.thumbnail_text,
-            parsed.eyebrow_text,
             media,
             out_dir / "slide_01.jpg",
         )
     )
 
-    total = len(parsed.body)
     for position, scene in enumerate(parsed.body):
         media = pick_media(scene.library, images_only=True)
         out = out_dir / f"slide_{position + 2:02d}.jpg"
-        slides.append(
-            render_content_slide(scene.text, position, total, media, out)
-        )
+        slides.append(render_content_slide(scene.text, media, out))
 
     return RenderResult(mode="carousel", paths=slides)
 

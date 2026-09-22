@@ -52,18 +52,19 @@ python -m src.cli --script scripts/example_carousel.txt
 - Write scenes like: `4 weeks recap | of my journey [videos/lifestyle]`
 - Video intro: `hook: 4 weeks recap | of my journey` (no library tag)
 
-### Carousel — Minimal Mono Chic (`templates/carousel-design-tokens.json`)
+### Carousel — Classic Magazine (`templates/carousel-design-tokens.json`)
 
-Carousels render at 1080×1920 (9:16, full TikTok frame) with a photo background, a dark
-top/bottom gradient for readable text, and a two-font system
-(Outfit + Instrument Serif Italic — files in `fonts/`):
+Carousels render at 1080×1920 (9:16, full TikTok frame). The photo fills the
+frame (cover-fit, sharp edges). Cover uses a dark vignette; body slides use a
+clear liquid-glass card around the paragraph.
+Fonts: Outfit Bold (yellow cover headline), Crimson Pro Italic (cover subline),
+Outfit Regular (body) — files in `fonts/`:
 
-- **Cover:** optional `eyebrow:` label + uppercase title with one word
-  auto-styled in gold italic + subtitle + SWIPE footer
-- **Body slides:** always `heading | body` + auto numbering `01, 02, ...` + page dots
-- A body line with no `|` treats the whole sentence as the heading (max 2 lines) — split with `|`
+- **Cover:** `headline | subline` → yellow uppercase + white italic, centered
+- **Body slides:** full sentences as one centered white paragraph on a liquid-glass card. `\n` starts a new visual line. Do not use `|` on body slides.
+- No labels, numbers, page dots, or SWIPE
 
-Edit the tokens JSON to change colors, sizes, spacing, or the gradient —
+Edit the tokens JSON to change colors, sizes, vignette, or the body card —
 the renderer (`src/render_carousel.py`) reads everything from it.
 
 Tune sizes/colors in the JSONs. Browse more fonts at [Google Fonts](https://fonts.google.com).
@@ -144,5 +145,5 @@ Dockerfile      Cloud Run image
 - **Telegram ignores /video scripts** — bot registers `/video` and `/carousel` as commands.
 - **Conflict: terminated by other getUpdates** — two bots are polling the same token. Stop the extra one (other terminal or Cloud Run), then `python -m src.telegram_bot` once.
 - **FFmpeg failed** — ensure `ffmpeg` is on PATH.
-- **"Slide heading is too long"** — carousel body lines need `short clause | rest [photos/lifestyle]` or `[photos/projects]`.
+- **"Slide body is too long"** — carousel body max 6 lines. Split onto another slide or add `\n`. Do not put `|` on body slides.
 - **No photos in photos/thumbnails** — add `.jpg/.png/.heic` files there for slide 1.
